@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/StartupCommon/">
+    <Project Path="StartupCommon/StartupCommon.csproj" />
+  </Folder>
+  <Folder Name="/StartupTool/">
+    <Project Path="StartupTool/StartupTool.csproj" />
+  </Folder>
+</Solution>

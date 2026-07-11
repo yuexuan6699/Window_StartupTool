@@ -6,19 +6,23 @@ public class ScriptRunner
 {
     private readonly Logger _logger;
     private readonly string _baseDir;
+    private readonly ProcessScanner _processScanner;
+    private readonly ProcessMonitor _processMonitor;
     private readonly Dictionary<string, Process> _runningProcesses = new();
     private readonly Dictionary<string, List<string>> _scriptLogs = new();
     private readonly Dictionary<string, DateTime> _lastRestartTime = new();
     private readonly object _lock = new();
-    private readonly ProcessMonitor _processMonitor;
     private System.Timers.Timer? _resourceMonitorTimer;
 
     public ScriptRunner(Logger logger, string baseDir)
     {
         _logger = logger;
         _baseDir = baseDir;
+        _processScanner = new ProcessScanner(baseDir);
         _processMonitor = new ProcessMonitor(logger);
     }
+
+    #region 资源监控
 
     public void StartResourceMonitor(List<ScriptItem> scripts)
     {
@@ -48,7 +52,7 @@ public class ScriptRunner
             {
                 if (!script.Enabled) continue;
 
-                var process = FindScriptProcessInSystem(script);
+                var process = _processScanner.FindScriptProcess(script);
                 if (process == null) continue;
 
                 var resourceInfo = _processMonitor.GetProcessResourceInfo(process);
@@ -76,21 +80,20 @@ public class ScriptRunner
 
                 if (shouldRestart)
                 {
+                    // 防抖动：60秒内只重启一次
                     lock (_lock)
                     {
                         if (_lastRestartTime.TryGetValue(script.Name, out var lastTime))
                         {
                             if (DateTime.Now - lastTime < TimeSpan.FromSeconds(60))
-                            {
                                 continue;
-                            }
                         }
                         _lastRestartTime[script.Name] = DateTime.Now;
                     }
 
                     _logger.Warn($"脚本资源占用过高，将重启: {script.Name} - {reason}");
 
-                    StopScriptFromSystem(script.Name, script.Path);
+                    StopScript(script.Name, script);
 
                     Task.Delay(script.RestartDelaySeconds * 1000).ContinueWith(_ =>
                     {
@@ -104,6 +107,10 @@ public class ScriptRunner
         catch { }
     }
 
+    #endregion
+
+    #region 脚本生命周期
+
     public bool StartScript(ScriptItem script)
     {
         lock (_lock)
@@ -115,12 +122,7 @@ public class ScriptRunner
             }
         }
 
-        // 如果脚本路径是相对路径，则基于项目根目录补全为绝对路径
-        var fullPath = script.Path;
-        if (!Path.IsPathRooted(fullPath))
-        {
-            fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
-        }
+        var fullPath = _processScanner.GetFullPath(script);
 
         if (!File.Exists(fullPath))
         {
@@ -131,29 +133,28 @@ public class ScriptRunner
         try
         {
             var workDir = Path.GetDirectoryName(fullPath) ?? "";
-            var fileName = fullPath;
+            var ext = Path.GetExtension(fullPath).ToLowerInvariant();
 
             string processFileName;
             string arguments;
 
-            var ext = Path.GetExtension(fileName).ToLowerInvariant();
             if (ext == ".ps1")
             {
                 processFileName = "powershell.exe";
-                arguments = $"-ExecutionPolicy Bypass -File \"{fileName}\"";
+                arguments = $"-ExecutionPolicy Bypass -File \"{fullPath}\"";
                 if (!string.IsNullOrEmpty(script.Arguments))
                     arguments += " " + script.Arguments;
             }
             else if (ext == ".bat" || ext == ".cmd")
             {
                 processFileName = "cmd.exe";
-                arguments = $"/c \"{fileName}\"";
+                arguments = $"/c \"{fullPath}\"";
                 if (!string.IsNullOrEmpty(script.Arguments))
                     arguments += " " + script.Arguments;
             }
             else
             {
-                processFileName = fileName;
+                processFileName = fullPath;
                 arguments = script.Arguments;
             }
 
@@ -199,164 +200,59 @@ public class ScriptRunner
         }
     }
 
-    private async void ReadProcessOutputAsync(Process process, string scriptName)
+    /// <summary>
+    /// 统一停止脚本：先尝试本地跟踪的进程，再回退到系统扫描
+    /// </summary>
+    public bool StopScript(string name, ScriptItem? scriptItem = null)
     {
-        try
-        {
-            await Task.WhenAll(
-                ReadOutputAsync(process.StandardOutput, scriptName, "STDOUT"),
-                ReadOutputAsync(process.StandardError, scriptName, "STDERR")
-            );
-        }
-        catch { }
-    }
-
-    private async Task ReadOutputAsync(StreamReader reader, string scriptName, string type)
-    {
-        string? line;
-        while ((line = await reader.ReadLineAsync()) != null)
-        {
-            var logLine = $"[{DateTime.Now:HH:mm:ss.fff}] [{type}] {line}";
-            lock (_lock)
-            {
-                if (_scriptLogs.TryGetValue(scriptName, out var logs))
-                {
-                    logs.Add(logLine);
-                    if (logs.Count > 5000)
-                    {
-                        logs.RemoveRange(0, logs.Count - 5000);
-                    }
-                }
-            }
-            _logger.LogScriptOutput(scriptName, type, line);
-        }
-    }
-
-    private void OnProcessExited(string name, Process process)
-    {
-        lock (_lock)
-        {
-            if (_runningProcesses.TryGetValue(name, out var p) && p.Id == process.Id)
-            {
-                _runningProcesses.Remove(name);
-                _logger.Info($"脚本进程退出: {name} (PID: {process.Id}, 退出码: {process.ExitCode})");
-            }
-        }
-        process.Dispose();
-    }
-
-    public bool StopScript(string name)
-    {
+        // 第一步：尝试停止本地跟踪的进程
         Process? process;
         lock (_lock)
         {
-            if (!_runningProcesses.TryGetValue(name, out process))
+            if (_runningProcesses.TryGetValue(name, out process))
             {
-                _logger.Warn($"脚本未在运行: {name}");
-                return false;
+                _runningProcesses.Remove(name);
             }
-            _runningProcesses.Remove(name);
-        }
-
-        try
-        {
-            if (!process.HasExited)
+            else
             {
-                process.Kill(entireProcessTree: true);
-                process.WaitForExit(5000);
+                process = null;
             }
-            _logger.Info($"脚本已停止: {name}");
-            return true;
         }
-        catch (Exception ex)
-        {
-            _logger.Error($"停止脚本异常 {name}: {ex.Message}");
-            return false;
-        }
-        finally
-        {
-            process.Dispose();
-        }
-    }
 
-    public bool StopScriptFromSystem(string name, string scriptPath)
-    {
-        try
+        if (process != null)
         {
-            var fullPath = scriptPath;
-            if (!Path.IsPathRooted(fullPath))
+            try
             {
-                fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
-            }
-
-            var scriptFileName = Path.GetFileName(fullPath).ToLowerInvariant();
-            bool foundAndKilled = false;
-
-            foreach (var process in Process.GetProcesses())
-            {
-                try
+                if (!process.HasExited)
                 {
-                    var processPath = process.MainModule?.FileName?.ToLowerInvariant();
-                    if (!string.IsNullOrEmpty(processPath))
-                    {
-                        if (processPath.EndsWith(scriptFileName) || processPath.Equals(fullPath.ToLowerInvariant()))
-                        {
-                            process.Kill(entireProcessTree: true);
-                            process.WaitForExit(5000);
-                            foundAndKilled = true;
-                            break;
-                        }
-
-                        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
-                        if (ext == ".ps1")
-                        {
-                            if (processPath.EndsWith("powershell.exe") || processPath.EndsWith("pwsh.exe"))
-                            {
-                                var cmdLine = GetCommandLine(process);
-                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
-                                {
-                                    process.Kill(entireProcessTree: true);
-                                    process.WaitForExit(5000);
-                                    foundAndKilled = true;
-                                    break;
-                                }
-                            }
-                        }
-                        else if (ext == ".bat" || ext == ".cmd")
-                        {
-                            if (processPath.EndsWith("cmd.exe"))
-                            {
-                                var cmdLine = GetCommandLine(process);
-                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
-                                {
-                                    process.Kill(entireProcessTree: true);
-                                    process.WaitForExit(5000);
-                                    foundAndKilled = true;
-                                    break;
-                                }
-                            }
-                        }
-                    }
+                    process.Kill(entireProcessTree: true);
+                    process.WaitForExit(5000);
                 }
-                catch { }
-                finally
-                {
-                    try { process.Dispose(); } catch { }
-                }
+                _logger.Info($"脚本已停止: {name}");
+                return true;
             }
+            catch (Exception ex)
+            {
+                _logger.Error($"停止脚本异常 {name}: {ex.Message}");
+            }
+            finally
+            {
+                process.Dispose();
+            }
+        }
 
-            if (foundAndKilled)
+        // 第二步：如果本地没有跟踪到，尝试系统扫描终止
+        if (scriptItem != null)
+        {
+            if (_processScanner.KillScriptProcess(scriptItem))
             {
                 _logger.Info($"脚本已停止(系统扫描): {name}");
+                return true;
             }
+        }
 
-            return foundAndKilled;
-        }
-        catch (Exception ex)
-        {
-            _logger.Error($"停止脚本异常(系统扫描) {name}: {ex.Message}");
-            return false;
-        }
+        _logger.Warn($"脚本未在运行: {name}");
+        return false;
     }
 
     public async Task StartAllScriptsAsync(List<ScriptItem> scripts)
@@ -409,110 +305,137 @@ public class ScriptRunner
         }
     }
 
+    #endregion
+
+    #region 进程退出处理
+
+    private void OnProcessExited(string name, Process process)
+    {
+        lock (_lock)
+        {
+            if (_runningProcesses.TryGetValue(name, out var p) && p.Id == process.Id)
+            {
+                _runningProcesses.Remove(name);
+                _logger.Info($"脚本进程退出: {name} (PID: {process.Id}, 退出码: {process.ExitCode})");
+            }
+        }
+        process.Dispose();
+    }
+
+    private async void ReadProcessOutputAsync(Process process, string scriptName)
+    {
+        try
+        {
+            await Task.WhenAll(
+                ReadOutputAsync(process.StandardOutput, scriptName, "STDOUT"),
+                ReadOutputAsync(process.StandardError, scriptName, "STDERR")
+            );
+        }
+        catch { }
+    }
+
+    private async Task ReadOutputAsync(StreamReader reader, string scriptName, string type)
+    {
+        string? line;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            var logLine = $"[{DateTime.Now:HH:mm:ss.fff}] [{type}] {line}";
+            lock (_lock)
+            {
+                if (_scriptLogs.TryGetValue(scriptName, out var logs))
+                {
+                    logs.Add(logLine);
+                    if (logs.Count > 5000)
+                        logs.RemoveRange(0, logs.Count - 5000);
+                }
+            }
+            _logger.LogScriptOutput(scriptName, type, line);
+        }
+    }
+
+    #endregion
+
+    #region 状态查询
+
+    /// <summary>
+    /// 获取本地跟踪的运行状态（快速，不进行系统扫描）
+    /// </summary>
     public Dictionary<string, bool> GetRunningStatus()
     {
         lock (_lock)
         {
-            var status = _runningProcesses.ToDictionary(
+            return _runningProcesses.ToDictionary(
                 kvp => kvp.Key,
                 kvp => !kvp.Value.HasExited);
-            return status;
         }
     }
 
-    public Dictionary<string, bool> GetRunningStatusWithSystemScan(List<ScriptItem> allScripts)
+    /// <summary>
+    /// 获取统一运行状态：合并本地跟踪 + 系统扫描
+    /// </summary>
+    public Dictionary<string, bool> GetUnifiedStatus(List<ScriptItem> allScripts)
     {
         var status = GetRunningStatus();
 
-        foreach (var script in allScripts)
+        // 对未在本进程跟踪到的脚本，进行系统扫描
+        var unTrackedScripts = allScripts
+            .Where(s => !status.ContainsKey(s.Name) || !status[s.Name])
+            .ToList();
+
+        if (unTrackedScripts.Count > 0)
         {
-            if (!status.ContainsKey(script.Name) || !status[script.Name])
+            var systemStatus = _processScanner.ScanAllScripts(unTrackedScripts);
+            foreach (var (name, running) in systemStatus)
             {
-                if (IsScriptRunningInSystem(script))
-                {
-                    status[script.Name] = true;
-                }
+                if (running)
+                    status[name] = true;
             }
         }
 
         return status;
     }
 
-    private bool IsScriptRunningInSystem(ScriptItem script)
+    /// <summary>
+    /// 获取所有运行中的脚本信息（名称 + PID），用于 UI 展示
+    /// </summary>
+    public (string Name, int Pid)[] GetRunningProcessInfos(List<ScriptItem> allScripts)
     {
-        try
+        var results = new List<(string Name, int Pid)>();
+
+        foreach (var script in allScripts)
         {
-            var fullPath = script.Path;
-            if (!Path.IsPathRooted(fullPath))
+            using var process = _processScanner.FindScriptProcess(script);
+            if (process != null && !process.HasExited)
             {
-                fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
-            }
-
-            var scriptFileName = Path.GetFileName(fullPath).ToLowerInvariant();
-
-            foreach (var process in Process.GetProcesses())
-            {
-                try
-                {
-                    var processPath = process.MainModule?.FileName?.ToLowerInvariant();
-                    if (!string.IsNullOrEmpty(processPath))
-                    {
-                        if (processPath.EndsWith(scriptFileName) || processPath.Equals(fullPath.ToLowerInvariant()))
-                        {
-                            return true;
-                        }
-
-                        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
-                        if (ext == ".ps1")
-                        {
-                            if (processPath.EndsWith("powershell.exe") || processPath.EndsWith("pwsh.exe"))
-                            {
-                                var cmdLine = GetCommandLine(process);
-                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-                        else if (ext == ".bat" || ext == ".cmd")
-                        {
-                            if (processPath.EndsWith("cmd.exe"))
-                            {
-                                var cmdLine = GetCommandLine(process);
-                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
-                                {
-                                    return true;
-                                }
-                            }
-                        }
-                    }
-                }
-                catch { }
-                finally
-                {
-                    try { process.Dispose(); } catch { }
-                }
+                results.Add((script.Name, process.Id));
             }
         }
-        catch { }
 
-        return false;
+        return results.ToArray();
     }
 
-    private string GetCommandLine(Process process)
+    public bool IsRunning(string name)
     {
-        try
+        lock (_lock)
         {
-            using var searcher = new System.Management.ManagementObjectSearcher(
-                $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}");
-            foreach (var obj in searcher.Get())
+            return _runningProcesses.TryGetValue(name, out var p) && !p.HasExited;
+        }
+    }
+
+    public int RunningCount
+    {
+        get
+        {
+            lock (_lock)
             {
-                return obj["CommandLine"]?.ToString() ?? string.Empty;
+                return _runningProcesses.Count;
             }
         }
-        catch { }
-        return string.Empty;
     }
+
+    #endregion
+
+    #region 资源信息
 
     public Dictionary<string, ProcessResourceInfo> GetProcessResourceInfo(List<ScriptItem> allScripts)
     {
@@ -520,7 +443,7 @@ public class ScriptRunner
 
         foreach (var script in allScripts)
         {
-            var process = FindScriptProcessInSystem(script);
+            var process = _processScanner.FindScriptProcess(script);
             if (process != null)
             {
                 try
@@ -547,119 +470,29 @@ public class ScriptRunner
         return infos;
     }
 
-    public bool IsRunning(string name)
-    {
-        lock (_lock)
-        {
-            return _runningProcesses.TryGetValue(name, out var p) && !p.HasExited;
-        }
-    }
+    #endregion
 
-    public int RunningCount
-    {
-        get
-        {
-            lock (_lock)
-            {
-                return _runningProcesses.Count;
-            }
-        }
-    }
-
-    public Dictionary<string, Process> GetRunningProcesses()
-    {
-        lock (_lock)
-        {
-            return _runningProcesses.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
-        }
-    }
-
-    public Dictionary<string, Process> GetRunningProcessesWithSystemScan(List<ScriptItem> allScripts)
-    {
-        var processes = GetRunningProcesses();
-
-        foreach (var script in allScripts)
-        {
-            if (!processes.ContainsKey(script.Name))
-            {
-                var process = FindScriptProcessInSystem(script);
-                if (process != null)
-                {
-                    processes[script.Name] = process;
-                }
-            }
-        }
-
-        return processes;
-    }
-
-    private Process? FindScriptProcessInSystem(ScriptItem script)
-    {
-        try
-        {
-            var fullPath = script.Path;
-            if (!Path.IsPathRooted(fullPath))
-            {
-                fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
-            }
-
-            var scriptFileName = Path.GetFileName(fullPath).ToLowerInvariant();
-
-            foreach (var process in Process.GetProcesses())
-            {
-                try
-                {
-                    var processPath = process.MainModule?.FileName?.ToLowerInvariant();
-                    if (!string.IsNullOrEmpty(processPath))
-                    {
-                        if (processPath.EndsWith(scriptFileName) || processPath.Equals(fullPath.ToLowerInvariant()))
-                        {
-                            return process;
-                        }
-
-                        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
-                        if (ext == ".ps1")
-                        {
-                            if (processPath.EndsWith("powershell.exe") || processPath.EndsWith("pwsh.exe"))
-                            {
-                                var cmdLine = GetCommandLine(process);
-                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
-                                {
-                                    return process;
-                                }
-                            }
-                        }
-                        else if (ext == ".bat" || ext == ".cmd")
-                        {
-                            if (processPath.EndsWith("cmd.exe"))
-                            {
-                                var cmdLine = GetCommandLine(process);
-                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
-                                {
-                                    return process;
-                                }
-                            }
-                        }
-                    }
-                }
-                catch { }
-            }
-        }
-        catch { }
-
-        return null;
-    }
+    #region 日志
 
     public List<string> GetScriptLogs(string name)
     {
         lock (_lock)
         {
             if (_scriptLogs.TryGetValue(name, out var logs))
-            {
                 return new List<string>(logs);
-            }
-            return new List<string>();
         }
+
+        try
+        {
+            var logFile = _logger.GetLatestScriptLogFile(name);
+            if (!string.IsNullOrEmpty(logFile) && File.Exists(logFile))
+            {
+                return File.ReadAllLines(logFile).ToList();
+            }
+        }
+        catch { }
+
+        return new List<string>();
     }
 
     public void ClearScriptLogs(string name)
@@ -667,9 +500,9 @@ public class ScriptRunner
         lock (_lock)
         {
             if (_scriptLogs.ContainsKey(name))
-            {
                 _scriptLogs[name].Clear();
-            }
         }
     }
+
+    #endregion
 }

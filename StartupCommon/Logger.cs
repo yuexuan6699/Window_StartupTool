@@ -81,6 +81,21 @@ public class Logger
     }
 
     /// <summary>
+    /// 获取脚本最新的日志文件路径（用于跨进程读取日志）
+    /// </summary>
+    public string? GetLatestScriptLogFile(string scriptName)
+    {
+        var pinyinName = PinyinConverter.ToPinyinDirName(scriptName);
+        var scriptDir = Path.Combine(_logDir, pinyinName);
+        if (!Directory.Exists(scriptDir))
+            return null;
+
+        return Directory.GetFiles(scriptDir, "*.log")
+            .OrderByDescending(f => f)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
     /// 在指定目录中查找当天最大的序号，返回序号+1的新文件路径
     /// </summary>
     private static string GetNextLogFile(string dir)

@@ -42,6 +42,8 @@ public partial class MainForm : Form
 
         Load += async (s, e) =>
         {
+            _scriptRunner.StartResourceMonitor(_configManager.GetScripts());
+
             if (!string.IsNullOrEmpty(_startupAction) && AppHelper.IsRunningAsAdmin())
             {
                 await Task.Delay(500);
@@ -482,8 +484,8 @@ public partial class MainForm : Form
 
     private void SetupStatusTimer()
     {
-        _statusTimer.Interval = 5000;
-        _statusTimer.Tick += (s, e) => RefreshScriptList();
+        _statusTimer.Interval = 3000;
+        _statusTimer.Tick += async (s, e) => await RefreshScriptListAsync();
         _statusTimer.Start();
     }
 
@@ -823,6 +825,13 @@ public partial class MainForm : Form
     private void BtnStopAll_Click(object? sender, EventArgs e)
     {
         _scriptRunner.StopAllScripts();
+        foreach (var script in _configManager.GetScripts())
+        {
+            if (!_scriptRunner.IsRunning(script.Name))
+            {
+                _scriptRunner.StopScriptFromSystem(script.Name, script.Path);
+            }
+        }
         RefreshScriptList();
     }
 
@@ -850,13 +859,21 @@ public partial class MainForm : Form
 
     private void BtnStopSelected_Click(object? sender, EventArgs e)
     {
-        var name = GetSelectedScriptName();
-        if (string.IsNullOrEmpty(name))
+        var script = GetSelectedScript();
+        if (script == null)
         {
             MessageBox.Show(LocalizationManager.GetString("PleaseSelectScript"), LocalizationManager.GetString("Hint"));
             return;
         }
-        _scriptRunner.StopScript(name);
+
+        if (!_scriptRunner.IsRunning(script.Name))
+        {
+            _scriptRunner.StopScriptFromSystem(script.Name, script.Path);
+        }
+        else
+        {
+            _scriptRunner.StopScript(script.Name);
+        }
         RefreshScriptList();
     }
 
@@ -876,12 +893,18 @@ public partial class MainForm : Form
 
     private void MenuStopScript_Click(object? sender, EventArgs e)
     {
-        var name = GetSelectedScriptName();
-        if (!string.IsNullOrEmpty(name))
+        var script = GetSelectedScript();
+        if (script == null) return;
+
+        if (!_scriptRunner.IsRunning(script.Name))
         {
-            _scriptRunner.StopScript(name);
-            RefreshScriptList();
+            _scriptRunner.StopScriptFromSystem(script.Name, script.Path);
         }
+        else
+        {
+            _scriptRunner.StopScript(script.Name);
+        }
+        RefreshScriptList();
     }
 
     private void MenuToggleEnabled_Click(object? sender, EventArgs e)
@@ -911,15 +934,15 @@ public partial class MainForm : Form
         return string.IsNullOrEmpty(name) ? null : _configManager.GetScript(name);
     }
 
-    private void RefreshScriptList()
+    private async Task RefreshScriptListAsync()
     {
-        if (_dgvScripts.IsDisposed) return;
+        if (_dgvScripts.IsDisposed || _isRefreshing) return;
 
         _isRefreshing = true;
         try
         {
             var scripts = _configManager.GetScripts();
-            var runningStatus = _scriptRunner.GetRunningStatus();
+            var runningStatus = await Task.Run(() => _scriptRunner.GetRunningStatusWithSystemScan(scripts));
 
             var dt = new DataTable();
             var colName = dt.Columns.Add("名称", typeof(string));
@@ -987,6 +1010,11 @@ public partial class MainForm : Form
         }
     }
 
+    private void RefreshScriptList()
+    {
+        _ = RefreshScriptListAsync();
+    }
+
     private void DgvScripts_CurrentCellDirtyStateChanged(object? sender, EventArgs e)
     {
         if (_dgvScripts.IsCurrentCellDirty)
@@ -1024,9 +1052,9 @@ public partial class MainForm : Form
             }
         }
 
-    private void RefreshAll()
+    private async void RefreshAll()
     {
-        RefreshScriptList();
+        await RefreshScriptListAsync();
         RefreshServiceStatus();
         Text = LocalizationManager.GetString("AppTitle");
     }
@@ -1091,6 +1119,27 @@ public partial class MainForm : Form
         };
 
         var rightPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(5) };
+        
+        var resourcePanel = new Panel
+        {
+            Dock = DockStyle.Top,
+            Height = 60,
+            BackColor = Color.FromArgb(25, 25, 25),
+            BorderStyle = BorderStyle.FixedSingle
+        };
+
+        var cpuLabel = new Label { Text = "CPU: --%", ForeColor = Color.LightBlue, Location = new Point(10, 10), Font = new Font("Microsoft YaHei", 10) };
+        var memoryLabel = new Label { Text = "内存: --MB", ForeColor = Color.LightGreen, Location = new Point(120, 10), Font = new Font("Microsoft YaHei", 10) };
+        var gpuLabel = new Label { Text = "GPU: --%", ForeColor = Color.LightPink, Location = new Point(230, 10), Font = new Font("Microsoft YaHei", 10) };
+        var gpuMemLabel = new Label { Text = "GPU显存: --MB", ForeColor = Color.Orange, Location = new Point(340, 10), Font = new Font("Microsoft YaHei", 10) };
+        var pidLabel = new Label { Text = "PID: --", ForeColor = Color.White, Location = new Point(480, 10), Font = new Font("Microsoft YaHei", 10) };
+
+        resourcePanel.Controls.Add(cpuLabel);
+        resourcePanel.Controls.Add(memoryLabel);
+        resourcePanel.Controls.Add(gpuLabel);
+        resourcePanel.Controls.Add(gpuMemLabel);
+        resourcePanel.Controls.Add(pidLabel);
+
         var logTextBox = new RichTextBox
         {
             Dock = DockStyle.Fill,
@@ -1106,7 +1155,7 @@ public partial class MainForm : Form
 
         void LoadProcesses()
         {
-            var runningProcesses = _scriptRunner.GetRunningProcesses();
+            var runningProcesses = _scriptRunner.GetRunningProcessesWithSystemScan(_configManager.GetScripts());
             var previousSelection = selectedScriptName;
 
             scriptList.Items.Clear();
@@ -1147,6 +1196,11 @@ public partial class MainForm : Form
             if (string.IsNullOrEmpty(selectedScriptName))
             {
                 logTextBox.Clear();
+                cpuLabel.Text = "CPU: --%";
+                memoryLabel.Text = "内存: --MB";
+                gpuLabel.Text = "GPU: --%";
+                gpuMemLabel.Text = "GPU显存: --MB";
+                pidLabel.Text = "PID: --";
                 return;
             }
 
@@ -1165,6 +1219,31 @@ public partial class MainForm : Form
                 logTextBox.AppendText(log + "\n");
             }
             logTextBox.ScrollToCaret();
+
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    var resourceInfo = _scriptRunner.GetProcessResourceInfo(_configManager.GetScripts());
+                    if (resourceInfo.TryGetValue(selectedScriptName, out var info) && info.Running)
+                    {
+                        cpuLabel.Text = $"CPU: {info.CpuPercent:F1}%";
+                        memoryLabel.Text = $"内存: {info.MemoryMb}MB";
+                        gpuLabel.Text = $"GPU: {info.GpuPercent:F1}%";
+                        gpuMemLabel.Text = $"GPU显存: {info.GpuMemoryMb}MB";
+                        pidLabel.Text = $"PID: {info.Pid}";
+                    }
+                    else
+                    {
+                        cpuLabel.Text = "CPU: --%";
+                        memoryLabel.Text = "内存: --MB";
+                        gpuLabel.Text = "GPU: --%";
+                        gpuMemLabel.Text = "GPU显存: --MB";
+                        pidLabel.Text = "PID: --";
+                    }
+                }
+                catch { }
+            });
         }
 
         scriptList.SelectedIndexChanged += (s, e) =>
@@ -1190,19 +1269,19 @@ public partial class MainForm : Form
         {
             if (string.IsNullOrEmpty(selectedScriptName)) return;
 
-            var runningProcesses = _scriptRunner.GetRunningProcesses();
-            int pid = 0;
-            if (runningProcesses.TryGetValue(selectedScriptName, out var process))
-            {
-                pid = process.Id;
-            }
+            var script = _configManager.GetScript(selectedScriptName);
+            if (script == null) return;
 
-            if (MessageBox.Show(LocalizationManager.GetString("ConfirmTerminate", selectedScriptName, pid), LocalizationManager.GetString("Confirm"), MessageBoxButtons.YesNo) == DialogResult.Yes)
+            if (!_scriptRunner.IsRunning(selectedScriptName))
+            {
+                _scriptRunner.StopScriptFromSystem(selectedScriptName, script.Path);
+            }
+            else
             {
                 _scriptRunner.StopScript(selectedScriptName);
-                LoadProcesses();
-                RefreshScriptList();
             }
+            LoadProcesses();
+            RefreshScriptList();
         };
 
         btnClearLogs.Click += (s, e) =>
@@ -1221,6 +1300,7 @@ public partial class MainForm : Form
         leftPanel.Controls.Add(scriptList);
         leftPanel.Controls.Add(btnPanel);
 
+        rightPanel.Controls.Add(resourcePanel);
         rightPanel.Controls.Add(logTextBox);
 
         splitPanel.Panel1.Controls.Add(leftPanel);
@@ -1230,7 +1310,7 @@ public partial class MainForm : Form
 
         LoadProcesses();
 
-        var timer = new System.Windows.Forms.Timer { Interval = 1000 };
+        var timer = new System.Windows.Forms.Timer { Interval = 3000 };
         timer.Tick += (s, e) =>
         {
             if (!processForm.IsDisposed && !logTextBox.IsDisposed)

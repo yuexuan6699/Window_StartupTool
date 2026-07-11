@@ -75,8 +75,15 @@ static class Program
 
         if (trayProcesses.Count > 0)
         {
-            MessageBox.Show(LocalizationManager.GetString("ProgramAlreadyRunning"), LocalizationManager.GetString("AppTitle"));
-            return;
+            foreach (var trayProcess in trayProcesses)
+            {
+                try
+                {
+                    ShowWindow(trayProcess.Id);
+                    return;
+                }
+                catch { }
+            }
         }
 
         string? startupAction = args.FirstOrDefault(a =>
@@ -87,6 +94,33 @@ static class Program
 
         Application.Run(new MainForm(startupAction ?? string.Empty));
     }
+
+    private static void ShowWindow(int processId)
+    {
+        try
+        {
+            var process = Process.GetProcessById(processId);
+            if (!process.HasExited)
+            {
+                var hwnd = FindWindow(null, LocalizationManager.GetString("AppTitle"));
+                if (hwnd != IntPtr.Zero)
+                {
+                    ShowWindow(hwnd, 9);
+                    SetForegroundWindow(hwnd);
+                }
+            }
+        }
+        catch { }
+    }
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll")]
+    private static extern bool SetForegroundWindow(IntPtr hWnd);
 
     private static bool IsServiceProcess(Process process)
     {
@@ -159,6 +193,7 @@ public class StartupWorker : BackgroundService
                 if (enabledScripts.Count > 0)
                 {
                     await _scriptRunner.StartAllScriptsAsync(enabledScripts);
+                    _scriptRunner.StartResourceMonitor(allScripts);
                 }
                 else
                 {

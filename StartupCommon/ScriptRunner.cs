@@ -8,12 +8,100 @@ public class ScriptRunner
     private readonly string _baseDir;
     private readonly Dictionary<string, Process> _runningProcesses = new();
     private readonly Dictionary<string, List<string>> _scriptLogs = new();
+    private readonly Dictionary<string, DateTime> _lastRestartTime = new();
     private readonly object _lock = new();
+    private readonly ProcessMonitor _processMonitor;
+    private System.Timers.Timer? _resourceMonitorTimer;
 
     public ScriptRunner(Logger logger, string baseDir)
     {
         _logger = logger;
         _baseDir = baseDir;
+        _processMonitor = new ProcessMonitor(logger);
+    }
+
+    public void StartResourceMonitor(List<ScriptItem> scripts)
+    {
+        if (_resourceMonitorTimer != null)
+        {
+            _resourceMonitorTimer.Stop();
+            _resourceMonitorTimer.Dispose();
+        }
+
+        _resourceMonitorTimer = new System.Timers.Timer(5000);
+        _resourceMonitorTimer.Elapsed += (s, e) => MonitorResources(scripts);
+        _resourceMonitorTimer.Start();
+    }
+
+    public void StopResourceMonitor()
+    {
+        _resourceMonitorTimer?.Stop();
+        _resourceMonitorTimer?.Dispose();
+        _resourceMonitorTimer = null;
+    }
+
+    private void MonitorResources(List<ScriptItem> scripts)
+    {
+        try
+        {
+            foreach (var script in scripts)
+            {
+                if (!script.Enabled) continue;
+
+                var process = FindScriptProcessInSystem(script);
+                if (process == null) continue;
+
+                var resourceInfo = _processMonitor.GetProcessResourceInfo(process);
+
+                bool shouldRestart = false;
+                string reason = "";
+
+                if (script.MaxCpuPercent > 0 && resourceInfo.CpuPercent > script.MaxCpuPercent)
+                {
+                    shouldRestart = true;
+                    reason += $"CPU占用过高({resourceInfo.CpuPercent:F1}% > {script.MaxCpuPercent}%)";
+                }
+
+                if (script.MaxMemoryMb > 0 && resourceInfo.MemoryMb > script.MaxMemoryMb)
+                {
+                    shouldRestart = true;
+                    reason += $"内存占用过高({resourceInfo.MemoryMb}MB > {script.MaxMemoryMb}MB)";
+                }
+
+                if (script.MaxGpuPercent > 0 && resourceInfo.GpuPercent > script.MaxGpuPercent)
+                {
+                    shouldRestart = true;
+                    reason += $"GPU占用过高({resourceInfo.GpuPercent:F1}% > {script.MaxGpuPercent}%)";
+                }
+
+                if (shouldRestart)
+                {
+                    lock (_lock)
+                    {
+                        if (_lastRestartTime.TryGetValue(script.Name, out var lastTime))
+                        {
+                            if (DateTime.Now - lastTime < TimeSpan.FromSeconds(60))
+                            {
+                                continue;
+                            }
+                        }
+                        _lastRestartTime[script.Name] = DateTime.Now;
+                    }
+
+                    _logger.Warn($"脚本资源占用过高，将重启: {script.Name} - {reason}");
+
+                    StopScriptFromSystem(script.Name, script.Path);
+
+                    Task.Delay(script.RestartDelaySeconds * 1000).ContinueWith(_ =>
+                    {
+                        StartScript(script);
+                    });
+                }
+
+                process.Dispose();
+            }
+        }
+        catch { }
     }
 
     public bool StartScript(ScriptItem script)
@@ -191,6 +279,86 @@ public class ScriptRunner
         }
     }
 
+    public bool StopScriptFromSystem(string name, string scriptPath)
+    {
+        try
+        {
+            var fullPath = scriptPath;
+            if (!Path.IsPathRooted(fullPath))
+            {
+                fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
+            }
+
+            var scriptFileName = Path.GetFileName(fullPath).ToLowerInvariant();
+            bool foundAndKilled = false;
+
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    var processPath = process.MainModule?.FileName?.ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(processPath))
+                    {
+                        if (processPath.EndsWith(scriptFileName) || processPath.Equals(fullPath.ToLowerInvariant()))
+                        {
+                            process.Kill(entireProcessTree: true);
+                            process.WaitForExit(5000);
+                            foundAndKilled = true;
+                            break;
+                        }
+
+                        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+                        if (ext == ".ps1")
+                        {
+                            if (processPath.EndsWith("powershell.exe") || processPath.EndsWith("pwsh.exe"))
+                            {
+                                var cmdLine = GetCommandLine(process);
+                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
+                                {
+                                    process.Kill(entireProcessTree: true);
+                                    process.WaitForExit(5000);
+                                    foundAndKilled = true;
+                                    break;
+                                }
+                            }
+                        }
+                        else if (ext == ".bat" || ext == ".cmd")
+                        {
+                            if (processPath.EndsWith("cmd.exe"))
+                            {
+                                var cmdLine = GetCommandLine(process);
+                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
+                                {
+                                    process.Kill(entireProcessTree: true);
+                                    process.WaitForExit(5000);
+                                    foundAndKilled = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+                finally
+                {
+                    try { process.Dispose(); } catch { }
+                }
+            }
+
+            if (foundAndKilled)
+            {
+                _logger.Info($"脚本已停止(系统扫描): {name}");
+            }
+
+            return foundAndKilled;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"停止脚本异常(系统扫描) {name}: {ex.Message}");
+            return false;
+        }
+    }
+
     public async Task StartAllScriptsAsync(List<ScriptItem> scripts)
     {
         _logger.Info($"开始启动 {scripts.Count} 个脚本...");
@@ -245,10 +413,138 @@ public class ScriptRunner
     {
         lock (_lock)
         {
-            return _runningProcesses.ToDictionary(
+            var status = _runningProcesses.ToDictionary(
                 kvp => kvp.Key,
                 kvp => !kvp.Value.HasExited);
+            return status;
         }
+    }
+
+    public Dictionary<string, bool> GetRunningStatusWithSystemScan(List<ScriptItem> allScripts)
+    {
+        var status = GetRunningStatus();
+
+        foreach (var script in allScripts)
+        {
+            if (!status.ContainsKey(script.Name) || !status[script.Name])
+            {
+                if (IsScriptRunningInSystem(script))
+                {
+                    status[script.Name] = true;
+                }
+            }
+        }
+
+        return status;
+    }
+
+    private bool IsScriptRunningInSystem(ScriptItem script)
+    {
+        try
+        {
+            var fullPath = script.Path;
+            if (!Path.IsPathRooted(fullPath))
+            {
+                fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
+            }
+
+            var scriptFileName = Path.GetFileName(fullPath).ToLowerInvariant();
+
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    var processPath = process.MainModule?.FileName?.ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(processPath))
+                    {
+                        if (processPath.EndsWith(scriptFileName) || processPath.Equals(fullPath.ToLowerInvariant()))
+                        {
+                            return true;
+                        }
+
+                        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+                        if (ext == ".ps1")
+                        {
+                            if (processPath.EndsWith("powershell.exe") || processPath.EndsWith("pwsh.exe"))
+                            {
+                                var cmdLine = GetCommandLine(process);
+                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                        else if (ext == ".bat" || ext == ".cmd")
+                        {
+                            if (processPath.EndsWith("cmd.exe"))
+                            {
+                                var cmdLine = GetCommandLine(process);
+                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
+                                {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+                finally
+                {
+                    try { process.Dispose(); } catch { }
+                }
+            }
+        }
+        catch { }
+
+        return false;
+    }
+
+    private string GetCommandLine(Process process)
+    {
+        try
+        {
+            using var searcher = new System.Management.ManagementObjectSearcher(
+                $"SELECT CommandLine FROM Win32_Process WHERE ProcessId = {process.Id}");
+            foreach (var obj in searcher.Get())
+            {
+                return obj["CommandLine"]?.ToString() ?? string.Empty;
+            }
+        }
+        catch { }
+        return string.Empty;
+    }
+
+    public Dictionary<string, ProcessResourceInfo> GetProcessResourceInfo(List<ScriptItem> allScripts)
+    {
+        var infos = new Dictionary<string, ProcessResourceInfo>();
+
+        foreach (var script in allScripts)
+        {
+            var process = FindScriptProcessInSystem(script);
+            if (process != null)
+            {
+                try
+                {
+                    var info = _processMonitor.GetProcessResourceInfo(process);
+                    info.ScriptName = script.Name;
+                    infos[script.Name] = info;
+                }
+                finally
+                {
+                    process.Dispose();
+                }
+            }
+            else
+            {
+                infos[script.Name] = new ProcessResourceInfo
+                {
+                    ScriptName = script.Name,
+                    Running = false
+                };
+            }
+        }
+
+        return infos;
     }
 
     public bool IsRunning(string name)
@@ -276,6 +572,82 @@ public class ScriptRunner
         {
             return _runningProcesses.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
+    }
+
+    public Dictionary<string, Process> GetRunningProcessesWithSystemScan(List<ScriptItem> allScripts)
+    {
+        var processes = GetRunningProcesses();
+
+        foreach (var script in allScripts)
+        {
+            if (!processes.ContainsKey(script.Name))
+            {
+                var process = FindScriptProcessInSystem(script);
+                if (process != null)
+                {
+                    processes[script.Name] = process;
+                }
+            }
+        }
+
+        return processes;
+    }
+
+    private Process? FindScriptProcessInSystem(ScriptItem script)
+    {
+        try
+        {
+            var fullPath = script.Path;
+            if (!Path.IsPathRooted(fullPath))
+            {
+                fullPath = Path.GetFullPath(Path.Combine(_baseDir, fullPath));
+            }
+
+            var scriptFileName = Path.GetFileName(fullPath).ToLowerInvariant();
+
+            foreach (var process in Process.GetProcesses())
+            {
+                try
+                {
+                    var processPath = process.MainModule?.FileName?.ToLowerInvariant();
+                    if (!string.IsNullOrEmpty(processPath))
+                    {
+                        if (processPath.EndsWith(scriptFileName) || processPath.Equals(fullPath.ToLowerInvariant()))
+                        {
+                            return process;
+                        }
+
+                        var ext = Path.GetExtension(fullPath).ToLowerInvariant();
+                        if (ext == ".ps1")
+                        {
+                            if (processPath.EndsWith("powershell.exe") || processPath.EndsWith("pwsh.exe"))
+                            {
+                                var cmdLine = GetCommandLine(process);
+                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
+                                {
+                                    return process;
+                                }
+                            }
+                        }
+                        else if (ext == ".bat" || ext == ".cmd")
+                        {
+                            if (processPath.EndsWith("cmd.exe"))
+                            {
+                                var cmdLine = GetCommandLine(process);
+                                if (!string.IsNullOrEmpty(cmdLine) && cmdLine.Contains(scriptFileName))
+                                {
+                                    return process;
+                                }
+                            }
+                        }
+                    }
+                }
+                catch { }
+            }
+        }
+        catch { }
+
+        return null;
     }
 
     public List<string> GetScriptLogs(string name)

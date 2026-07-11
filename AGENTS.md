@@ -13,13 +13,17 @@
 - 开机自启：通过 Windows Service 实现系统级开机自动运行
 - 配置管理：JSON 配置文件，支持热重载
 - 日志记录：分层日志，主程序日志写入 `logs/startup/`，脚本日志写入 `logs/{脚本拼音名}/`，文件名格式为 `yyyy-MM-dd_NNN.log`
+- 服务路径自动更新：移动程序后自动检测并提示更新服务路径
+- 跨进程状态同步：托盘进程可查看和管理服务进程启动的脚本
+- 资源监控：实时监控脚本的 CPU、内存、GPU 占用
+- 自动重启：资源占用过高时自动重启脚本
 
 ### 运行模式
 
 | 模式 | 触发方式 | 说明 |
 |------|----------|------|
-| **服务模式** | `StartupTool.exe --service` 或 Windows Service 启动 | 开机自动运行，无界面，启动所有启用的脚本 |
-| **托盘模式** | 直接双击 `StartupTool.exe` | 显示系统托盘图标和管理窗口，供用户交互 |
+| **服务模式** | `StartupTool.exe --service` 或 Windows Service 启动 | 开机自动运行，无界面，启动所有启用的脚本，后台监控资源占用 |
+| **托盘模式** | 直接双击 `StartupTool.exe` | 显示系统托盘图标和管理窗口，供用户交互管理 |
 
 ## 二、项目架构
 
@@ -32,30 +36,28 @@ StartupTool.slnx
 │   ├── AppHelper.cs              # 应用辅助工具类
 │   ├── ConfigManager.cs          # 配置管理（加载/保存/热重载）
 │   ├── Logger.cs                 # 日志记录器
+│   ├── ProcessMonitor.cs         # 进程资源监控（CPU/内存/GPU）
 │   ├── ScriptItem.cs             # 脚本项模型
-│   ├── ScriptRunner.cs           # 脚本运行器（启动/停止进程）
-│   ├── PinyinConverter.cs          # 拼音转换工具类（中文→拼音目录名）
+│   ├── ScriptRunner.cs           # 脚本运行器（启动/停止进程、资源监控）
+│   ├── PinyinConverter.cs        # 拼音转换工具类（中文→拼音目录名）
 │   └── StartupCommon.csproj
 │
-├── StartupTool/                # 主程序（服务 + 托盘合一）
+├── StartupTool/                 # 主程序（服务 + 托盘合一）
 │   ├── Program.cs                # 程序入口，判断运行模式并启动对应模块
-│   ├── MainForm.cs               # 主窗体（服务管理 + 脚本管理）
+│   ├── MainForm.cs               # 主窗体（服务管理 + 脚本管理 + 资源监控）
 │   └── StartupTool.csproj
 │
-├── config/                     # 配置目录
-│   └── scripts.json              # 脚本配置文件
-│
-├── build.bat                   # 构建脚本
-├── install.ps1                 # 服务安装脚本（管理员）
-├── uninstall.ps1               # 服务卸载脚本（管理员）
-└── README.md                   # 项目说明文档
+├── build.bat                    # 构建脚本
+├── install.ps1                  # 服务安装脚本（管理员）
+├── uninstall.ps1                # 服务卸载脚本（管理员）
+└── README.md                    # 项目说明文档
 ```
 
 ### 2.2 项目依赖关系
 
 | 项目 | 类型 | 依赖项 | 职责 |
 |------|------|--------|------|
-| **StartupCommon** | .NET 类库 | ToolGood.Words.Pinyin | 核心逻辑共享：配置管理、拼音转换、脚本运行、日志记录、工具方法 |
+| **StartupCommon** | .NET 类库 | ToolGood.Words.Pinyin | 核心逻辑共享：配置管理、拼音转换、脚本运行、日志记录、资源监控、工具方法 |
 | **StartupTool** | WinExe | StartupCommon + Microsoft.Extensions.Hosting.WindowsServices + System.ServiceProcess.ServiceController + System.Management | 单程序双模式：Windows Service + 系统托盘应用 |
 
 ```
@@ -89,10 +91,11 @@ StartupTool.slnx
 | 模块 | 文件 | 职责描述 |
 |------|------|----------|
 | **配置管理** | ConfigManager.cs | JSON 配置文件的加载、保存、热重载（FileSystemWatcher） |
-| **脚本运行** | ScriptRunner.cs | 进程启动/停止管理、运行状态追踪、批量操作、命令行参数传递、相对路径自动补全（基于项目根目录） |
+| **脚本运行** | ScriptRunner.cs | 进程启动/停止管理、运行状态追踪、批量操作、命令行参数传递、相对路径自动补全（基于项目根目录）、资源监控、自动重启 |
+| **资源监控** | ProcessMonitor.cs | 进程 CPU、内存、GPU 占用获取 |
 | **日志记录** | Logger.cs | 多级别日志输出（INFO/ERROR/WARN/SUCCESS），文件+控制台双输出 |
-| **模型定义** | AppConfig.cs / ScriptItem.cs | 应用配置与脚本项的数据模型（含 Enabled、Arguments 字段） |
-| **辅助工具** | AppHelper.cs | 路径查找、文件验证、自身路径获取等通用工具方法 |
+| **模型定义** | AppConfig.cs / ScriptItem.cs | 应用配置与脚本项的数据模型（含 Enabled、Arguments、资源限制字段） |
+| **辅助工具** | AppHelper.cs | 路径查找、文件验证、自身路径获取、服务路径管理等通用工具方法 |
 | **拼音转换** | PinyinConverter.cs | 中文转拼音（不含声调），用于构建脚本日志目录名 |
 
 #### StartupTool
@@ -100,8 +103,8 @@ StartupTool.slnx
 | 模块 | 文件 | 职责描述 |
 |------|------|----------|
 | **程序入口** | Program.cs | 判断运行模式（服务/托盘），启动对应模块，单例检查（排除服务进程） |
-| **工作者** | StartupWorker（内嵌） | 服务模式下加载配置并启动所有启用的脚本，服务停止时清理进程 |
-| **主窗体** | MainForm.cs | 服务状态管理、脚本列表展示、脚本增删改查、启用/禁用切换、选中启动/停止、右键菜单、系统托盘图标 |
+| **工作者** | StartupWorker（内嵌） | 服务模式下加载配置并启动所有启用的脚本，启动资源监控，服务停止时清理进程 |
+| **主窗体** | MainForm.cs | 服务状态管理、脚本列表展示、脚本增删改查、启用/禁用切换、选中启动/停止、右键菜单、系统托盘图标、运行中脚本查看、资源监控显示 |
 
 ## 三、代码规范与命名约定
 
@@ -150,10 +153,11 @@ public ScriptItem? GetScript(string name);
 
 #### 3.2.4 异步编程
 
-优先使用 `async/await` 模式处理异步操作：
+优先使用 `async/await` 模式处理异步操作，特别是 UI 操作和系统扫描：
 
 ```csharp
 public async Task StartAllScriptsAsync(List<ScriptItem> scripts);
+private async Task RefreshScriptListAsync();
 ```
 
 ### 3.3 设计原则
@@ -174,14 +178,17 @@ public bool AddScript(ScriptItem script)
 }
 ```
 
+**UI 线程安全**：系统扫描等耗时操作必须在后台线程执行，使用 `Task.Run` 或异步方法，避免阻塞 UI 线程。
+
 #### 3.3.2 资源管理
 
-实现 `IDisposable` 接口管理非托管资源（如 `FileSystemWatcher`）：
+实现 `IDisposable` 接口管理非托管资源（如 `FileSystemWatcher`、`Timer`）：
 
 ```csharp
 public void Dispose()
 {
     _watcher?.Dispose();
+    _resourceMonitorTimer?.Dispose();
 }
 ```
 
@@ -189,8 +196,16 @@ public void Dispose()
 
 每个类只负责一项功能：
 - `ConfigManager`：仅处理配置
-- `ScriptRunner`：仅处理进程运行
+- `ScriptRunner`：仅处理进程运行和资源监控
+- `ProcessMonitor`：仅处理资源监控数据获取
 - `Logger`：仅处理日志记录
+
+#### 3.3.4 跨进程通信
+
+服务进程和托盘进程是两个独立的进程，不共享内存状态。通过以下方式实现协同：
+- 共享配置文件同步状态
+- 系统扫描检测脚本运行状态
+- 服务路径自动检测和更新
 
 ### 3.4 配置文件规范
 
@@ -206,7 +221,11 @@ public void Dispose()
       "Path": "C:\\example\\script.bat",
       "Enabled": true,
       "Arguments": "--debug",
-      "Order": 0
+      "Order": 0,
+      "MaxCpuPercent": 90,
+      "MaxMemoryMb": 0,
+      "MaxGpuPercent": 90,
+      "RestartDelaySeconds": 10
     }
   ],
   "RunMode": "normal",
@@ -223,6 +242,10 @@ public void Dispose()
 | `Order` | `int` | `0` | 启动顺序（数值越小越先启动） |
 | `Enabled` | `bool` | `true` | 是否启用（禁用的脚本开机不启动） |
 | `Arguments` | `string` | `""` | 传递给脚本的命令行参数 |
+| `MaxCpuPercent` | `int` | `90` | CPU 占用上限（%），超过则自动重启 |
+| `MaxMemoryMb` | `long` | `0` | 内存占用上限（MB），0 表示不限制 |
+| `MaxGpuPercent` | `int` | `90` | GPU 占用上限（%），超过则自动重启 |
+| `RestartDelaySeconds` | `int` | `10` | 重启前等待的秒数 |
 
 **AppConfig 模型定义**（`StartupCommon/AppConfig.cs`）：
 
@@ -249,7 +272,28 @@ public void Dispose()
 [2026-07-11 10:00:00.123] [INFO] 服务启动，工作目录: E:\test\Multi-script_self-starting_tool
 [2026-07-11 10:00:01.456] [SUCCESS] 脚本已启动: 示例脚本 (PID: 1234)
 [2026-07-11 10:00:02.789] [ERROR] 脚本文件不存在: 测试脚本 (C:\test\missing.bat)
+[2026-07-11 10:00:03.012] [WARN] 脚本资源占用过高，将重启: 示例脚本 - CPU占用过高(95.5% > 90%)
 ```
+
+### 3.6 性能规范
+
+#### 3.6.1 UI 线程安全
+
+所有耗时操作必须在后台线程执行：
+- 系统进程扫描：使用 `Task.Run` 后台执行
+- 资源信息获取：使用 `Task.Run` 后台执行
+- 文件系统操作：使用异步方法或后台线程
+
+#### 3.6.2 刷新频率
+
+- 主界面脚本列表刷新：每 3 秒一次
+- 日志窗口刷新：每 3 秒一次
+- 资源监控扫描：每 5 秒一次（服务模式）
+
+#### 3.6.3 防抖动机制
+
+- 资源监控重启：同一脚本 60 秒内只会重启一次
+- UI 刷新：使用 `_isRefreshing` 标志防止重复刷新
 
 ## 四、开发环境
 
@@ -291,7 +335,7 @@ dotnet publish StartupTool/StartupTool.csproj -c Release -o publish -r win-x64 -
 ### 5.3 服务安装
 
 ```powershell
-sc create StartupTool binPath= "E:\path\to\StartupTool.exe --service" start= auto
+sc create StartupTool binPath= "E:\path\to\publish\StartupTool.exe --service" start= auto
 sc description StartupTool "开机自运行工具 - 自动启动配置脚本的服务"
 sc start StartupTool
 ```
@@ -303,8 +347,15 @@ sc start StartupTool
 3. **管理**：运行 `StartupTool.exe` 打开系统托盘管理窗口
 4. **卸载**：以管理员身份运行 `uninstall.ps1`
 
+### 5.5 移动程序后的处理
+
+如果移动了程序目录，双击运行 `StartupTool.exe`，程序会自动检测 Windows Service 中注册的路径是否与当前路径一致：
+- 如果不一致，会弹出提示框询问是否更新服务路径
+- 点击"是"后，程序会以管理员身份重启并自动更新服务路径
+- 更新成功后，开机自启恢复正常
+
 ---
 
-**文档版本**：2.1  
+**文档版本**：3.0  
 **最后更新**：2026-07-11  
 **适用项目**：开机自运行工具（StartupTool）

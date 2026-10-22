@@ -21,7 +21,7 @@
 
   <Package Name="StartupTool"
            Manufacturer="StartupTool Project"
-           Version="1.0.0"
+           Version="4.0.0"
            UpgradeCode="{8F5A2B41-7C3D-4E96-A1B2-C3D4E5F60718}"
            Scope="perMachine"
            Compressed="yes"

@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- M18：引用 App（WPF/WinExe）做入口分流与心跳命令退出码契约回归 -->
+    <UseWPF>true</UseWPF>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.2" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\StartupTool.Core\StartupTool.Core.csproj" />
+    <ProjectReference Include="..\..\src\StartupTool.Service\StartupTool.Service.csproj" />
+    <ProjectReference Include="..\..\src\StartupTool.App\StartupTool.App.csproj" />
+  </ItemGroup>
+
+  <!--
+    UseWPF 使隐式 using 集合变为桌面精简版（仅 System/Linq/Threading 等），
+    显式补回测试常用命名空间，保持既有测试文件写法不变。
+  -->
+  <ItemGroup>
+    <Using Include="System.IO" />
+    <Using Include="System.Diagnostics" />
+    <Using Include="System.Net" />
+  </ItemGroup>
+
+</Project>

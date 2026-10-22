@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- 唯一可执行产物：StartupTool.exe，单 exe 双模式（服务模式 / 控制端 / 心跳投递） -->
+    <OutputType>WinExe</OutputType>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>StartupTool</AssemblyName>
+    <RootNamespace>StartupTool.App</RootNamespace>
+    <!-- 程序图标：复用旧版 StartupTool 的 app.ico（也用于开始菜单快捷方式） -->
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- 托盘图标复用应用图标：除作 ApplicationIcon 外，再以 WPF Resource 打包，供运行时经 pack:// 读取最大帧 -->
+    <Resource Include="Resources\app.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StartupTool.Service\StartupTool.Service.csproj" />
+    <ProjectReference Include="..\StartupTool.Core\StartupTool.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- M5：MVVM 源生成（ObservableObject/RelayCommand）与 WPF 托盘图标（事实标准库） -->
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Hardcodet.NotifyIcon.Wpf" Version="2.0.1" />
+  </ItemGroup>
+
+  <!-- 使用自定义 Program.Main 作为唯一入口（双模式分流），关闭 WPF 自动生成的 Main -->
+  <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <!-- M18：入口分流/心跳命令对测试程序集可见，做退出码契约回归 -->
+  <ItemGroup>
+    <InternalsVisibleTo Include="StartupTool.Core.Tests" />
+  </ItemGroup>
+
+</Project>

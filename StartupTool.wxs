@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  StartupTool MSI 安装包（WiX v4 语法）
+  由 src\StartupTool.App 的 win-x64 自包含单文件产物（publish\StartupTool.exe）打包。
+  安装与卸载复用 exe 内置安装器（命令行参数 install / uninstall，前导双短横线），与 tests\install.ps1 走同一条已验证逻辑：
+    安装：sc create（SYSTEM / 自动启动 / 含空格路径加内层引号）+ 服务描述 + 崩溃自动重启
+          + HKLM Run 登录自启 + 启动服务。
+    卸载：sc stop / sc delete + 移除 HKLM Run 值（服务不存在视为成功，幂等）。
+  自定义动作均以 deferred + Impersonate="no"（SYSTEM）运行，满足安装器对管理员权限的要求。
+
+  注意：自定义动作与 InstallExecuteSequence 必须放在 <Package> 内，避免放进未引用的
+  <Fragment> 而被 WiX 链接器静默丢弃，导致动作不进入 MSI。
+
+  重要：WiX v4 不允许固定 ProductCode（<Package> 无 Id 属性），ProductCode 由 WiX 每次构建自动
+  生成。若同一版本（相同 UpgradeCode、相同组件 GUID）被反复安装，可能产生多个产品记录共存、
+  同一组件被多个客户端引用，卸载时 MSI 以 "another client exists" 放弃删除组件文件（exe 残留）。
+  因此下方 MajorUpgrade 必须带 AllowSameVersionUpgrades="yes"：使同版本重装先移除旧产品，确保
+  同 UpgradeCode 同时只存在一个产品，从而避免组件被多客户端引用、保证卸载即删。
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+
+  <Package Name="StartupTool"
+           Manufacturer="StartupTool Project"
+           Version="1.0.0"
+           UpgradeCode="{8F5A2B41-7C3D-4E96-A1B2-C3D4E5F60718}"
+           Scope="perMachine"
+           Compressed="yes"
+           Language="2052">
+
+    <SummaryInformation Description="StartupTool 安装包（开机自启的脚本守护与控制台）" Manufacturer="StartupTool Project" />
+
+    <!-- 升级：已存在更高版本时拒绝降级；同版本重装视为升级（先移除旧产品），避免多产品共存 -->
+    <MajorUpgrade AllowSameVersionUpgrades="yes" DowngradeErrorMessage="已安装更新版本的 StartupTool，请先卸载后再安装此版本。" />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- 程序图标：与 exe 使用同一份 app.ico，也作为开始菜单快捷方式图标 -->
+    <Icon Id="AppIcon" SourceFile="src\StartupTool.App\Resources\app.ico" />
+
+    <!-- 安装目录：Program Files\StartupTool（config、logs 由程序自身在该目录下创建） -->
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="StartupTool" />
+    </StandardDirectory>
+
+    <!-- 开始菜单→程序 目录（快捷方式所在，卸载时随组件移除） -->
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="StartupTool" />
+    </StandardDirectory>
+
+    <Feature Id="Main" Title="StartupTool" Level="1">
+      <ComponentGroupRef Id="MainComponents" />
+      <ComponentGroupRef Id="ShortcutComponents" />
+    </Feature>
+
+    <!-- 安装内容：StartupTool.exe（自包含单文件）。当前发布参数 IncludeNativeLibrariesForSelfExtract=true
+         已将 .NET 10 的 WPF 原生库全部内嵌进 exe，故无需再打包外部 _cor3.dll。
+         若未来发布布局改为原生库外部化（exe 旁出现 wpfgfx_cor3.dll 等），必须把这些库一并打进本组件，
+         否则安装后开窗会 DllNotFoundException 闪退。 -->
+    <ComponentGroup Id="MainComponents" Directory="INSTALLFOLDER">
+      <Component Id="MainExecutable" Guid="{2C4E6A80-9B1D-4F3A-8E5B-7D9C1A2B3C4D}">
+        <File Id="StartupToolExe" Source="publish\StartupTool.exe" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- 开始菜单→程序 快捷方式：无参启动控制端 UI -->
+    <ComponentGroup Id="ShortcutComponents">
+      <Component Id="ApplicationShortcut" Directory="ApplicationProgramsFolder" Guid="{6F7A8B91-2C34-4D5E-9A0B-1C2D3E4F5A6B}">
+        <Shortcut Id="StartupToolShortcut" Name="StartupTool"
+                  Target="[INSTALLFOLDER]StartupTool.exe"
+                  WorkingDirectory="INSTALLFOLDER"
+                  Icon="AppIcon" />
+        <RemoveFolder Id="ApplicationProgramsFolder" On="uninstall" />
+        <RegistryValue Root="HKCU" Key="Software\StartupTool\StartupToolInstaller"
+                       Name="installed" Type="integer" Value="1" KeyPath="yes" />
+      </Component>
+    </ComponentGroup>
+
+    <!-- 服务注册与注销：复用 exe 内置安装器 -->
+    <!-- 首装前先清理机器上可能残留的同名服务与 Run 键（幂等，忽略结果） -->
+    <CustomAction Id="CleanupExistingService"
+                  FileRef="StartupToolExe"
+                  ExeCommand="--uninstall"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- 装完文件后注册并启动服务（失败则回滚安装，返回码由安装器给出） -->
+    <CustomAction Id="RegisterService"
+                  FileRef="StartupToolExe"
+                  ExeCommand="--install"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="check" />
+
+    <!-- 卸载时（文件尚在）停止并删除服务、清理 Run 键 -->
+    <CustomAction Id="UnregisterService"
+                  FileRef="StartupToolExe"
+                  ExeCommand="--uninstall"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="CleanupExistingService" Before="RegisterService" Condition="NOT Installed" />
+      <Custom Action="RegisterService" After="InstallFiles" Condition="NOT Installed OR REINSTALL" />
+      <!-- 完全卸载（含 MajorUpgrade 移除旧版）时清理服务 -->
+      <Custom Action="UnregisterService" Before="RemoveFiles" Condition='REMOVE="ALL"' />
+    </InstallExecuteSequence>
+
+  </Package>
+
+</Wix>

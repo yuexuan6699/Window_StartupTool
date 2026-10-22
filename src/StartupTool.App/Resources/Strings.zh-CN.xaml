@@ -1,0 +1,251 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- 中文（简体）文案。所有 UI 文本一律取 DynamicResource 键（C13），禁止硬编码。 -->
+
+    <sys:String x:Key="Str.App.Title">StartupTool 控制台</sys:String>
+
+    <!-- 通用 -->
+    <sys:String x:Key="Str.Common.Add">添加脚本</sys:String>
+    <sys:String x:Key="Str.Common.Edit">编辑</sys:String>
+    <sys:String x:Key="Str.Common.Delete">删除</sys:String>
+    <sys:String x:Key="Str.Common.Save">保存</sys:String>
+    <sys:String x:Key="Str.Common.Cancel">取消</sys:String>
+    <sys:String x:Key="Str.Common.Close">关闭</sys:String>
+    <sys:String x:Key="Str.Common.Confirm">确定</sys:String>
+    <sys:String x:Key="Str.Common.Refresh">刷新</sys:String>
+    <sys:String x:Key="Str.Common.Start">启动</sys:String>
+    <sys:String x:Key="Str.Common.Stop">停止</sys:String>
+    <sys:String x:Key="Str.Common.Restart">重启</sys:String>
+    <sys:String x:Key="Str.Common.Yes">是</sys:String>
+    <sys:String x:Key="Str.Common.No">否</sys:String>
+    <sys:String x:Key="Str.Common.OK">好</sys:String>
+    <sys:String x:Key="Str.Common.Copy">复制</sys:String>
+    <sys:String x:Key="Str.Common.Copied">已复制到剪贴板。</sys:String>
+    <sys:String x:Key="Str.Common.Error">操作失败</sys:String>
+    <sys:String x:Key="Str.Common.CommError">通信失败</sys:String>
+    <sys:String x:Key="Str.Common.RejectedByService">服务端拒绝了操作：{0}</sys:String>
+
+    <!-- 连接 -->
+    <sys:String x:Key="Str.Conn.Connected">已连接守护服务</sys:String>
+    <sys:String x:Key="Str.Conn.Disconnected">服务未运行（正在自动重试连接…）</sys:String>
+    <sys:String x:Key="Str.Conn.Reconnected">已连接服务。</sys:String>
+
+    <!-- 主窗口工具栏/提示 -->
+    <sys:String x:Key="Str.Main.StopAll">全部停止</sys:String>
+    <sys:String x:Key="Str.Main.Settings">设置</sys:String>
+    <sys:String x:Key="Str.Main.SearchWatermark">搜索脚本名称…</sys:String>
+    <sys:String x:Key="Str.Main.Ready">就绪。</sys:String>
+    <sys:String x:Key="Str.Main.Empty">还没有脚本，点击「添加脚本」开始配置。</sys:String>
+    <sys:String x:Key="Str.Main.OpenConfigFile">打开配置文件</sys:String>
+    <sys:String x:Key="Str.Main.OpenLogsFolder">打开日志目录</sys:String>
+
+    <!-- 表格列 -->
+    <sys:String x:Key="Str.Col.Name">名称</sys:String>
+    <sys:String x:Key="Str.Col.State">状态</sys:String>
+    <sys:String x:Key="Str.Col.Pid">PID</sys:String>
+    <sys:String x:Key="Str.Col.Session">会话</sys:String>
+    <sys:String x:Key="Str.Col.Uptime">运行时长</sys:String>
+    <sys:String x:Key="Str.Col.Restarts">重启</sys:String>
+    <sys:String x:Key="Str.Col.LastFault">最近故障</sys:String>
+    <sys:String x:Key="Str.Col.Cpu">CPU</sys:String>
+    <sys:String x:Key="Str.Col.Memory">内存</sys:String>
+    <sys:String x:Key="Str.Col.Gpu">GPU</sys:String>
+    <sys:String x:Key="Str.Col.LastBeat">最后心跳</sys:String>
+    <sys:String x:Key="Str.Col.External">外部进程</sys:String>
+    <sys:String x:Key="Str.Col.ExitCode">退出码</sys:String>
+    <sys:String x:Key="Str.Col.Ops">操作</sys:String>
+
+    <!-- 状态（C14：区分托管/外部/熔断/心跳超时/排队） -->
+    <sys:String x:Key="Str.State.Running">● 运行中</sys:String>
+    <sys:String x:Key="Str.State.Stopped">已停止</sys:String>
+    <sys:String x:Key="Str.State.Starting">启动中…</sys:String>
+    <sys:String x:Key="Str.State.Stopping">停止中…</sys:String>
+    <sys:String x:Key="Str.State.Faulted">▲ 已熔断</sys:String>
+    <sys:String x:Key="Str.State.Waiting">等待登录</sys:String>
+    <sys:String x:Key="Str.State.HeartbeatTimedOut">心跳超时</sys:String>
+    <sys:String x:Key="Str.State.HeartbeatOk">正常</sys:String>
+    <sys:String x:Key="Str.State.Unknown">—</sys:String>
+    <sys:String x:Key="Str.State.UnknownShort">—</sys:String>
+    <sys:String x:Key="Str.State.ExternalCount">{0} 个外部</sys:String>
+    <sys:String x:Key="Str.State.SessionActive">会话 {0}</sys:String>
+
+    <!-- 行内操作 -->
+    <sys:String x:Key="Str.Row.ResumeGuard">恢复守护</sys:String>
+    <sys:String x:Key="Str.Row.Output">输出</sys:String>
+
+    <!-- 右键菜单（C6） -->
+    <sys:String x:Key="Str.Menu.Edit">编辑脚本…</sys:String>
+    <sys:String x:Key="Str.Menu.Output">查看实时输出</sys:String>
+    <sys:String x:Key="Str.Menu.Heartbeat">心跳命令…</sys:String>
+    <sys:String x:Key="Str.Menu.External">外部同名进程…</sys:String>
+    <sys:String x:Key="Str.Menu.OpenLocation">打开文件位置</sys:String>
+    <sys:String x:Key="Str.Menu.MoveUp">上移</sys:String>
+    <sys:String x:Key="Str.Menu.MoveDown">下移</sys:String>
+    <sys:String x:Key="Str.Menu.Delete">删除脚本…</sys:String>
+    <sys:String x:Key="Str.Menu.ResumeGuard">恢复守护并启动</sys:String>
+
+    <!-- 编辑脚本（C1/C3） -->
+    <sys:String x:Key="Str.Edit.TitleAdd">添加脚本</sys:String>
+    <sys:String x:Key="Str.Edit.TitleEdit">编辑脚本：{0}</sys:String>
+    <sys:String x:Key="Str.Edit.GroupBasic">基本信息</sys:String>
+    <sys:String x:Key="Str.Edit.GroupStart">启动设置</sys:String>
+    <sys:String x:Key="Str.Edit.GroupGuard">守护与资源</sys:String>
+    <sys:String x:Key="Str.Edit.Name">显示名称</sys:String>
+    <sys:String x:Key="Str.Edit.Path">脚本/程序路径</sys:String>
+    <sys:String x:Key="Str.Edit.Arguments">命令行参数</sys:String>
+    <sys:String x:Key="Str.Edit.PythonExecutable">Python 解释器（仅 .py/.pyw；留空用系统 Python）</sys:String>
+    <sys:String x:Key="Str.Edit.PythonExecutableHint">虚拟环境无需激活：直接选该环境的 Scripts\python.exe（目录名字任意，例如 .venv、venv、env、myenv）。留空则依次使用系统的 py.exe 或 python.exe。非 Python 脚本忽略此项。</sys:String>
+    <sys:String x:Key="Str.Edit.BrowsePythonTitle">选择 Python 解释器</sys:String>
+    <sys:String x:Key="Str.Edit.WorkingDir">工作目录（留空取脚本所在目录）</sys:String>
+    <sys:String x:Key="Str.Edit.Environment">环境变量</sys:String>
+    <sys:String x:Key="Str.Edit.EnvKey">变量名</sys:String>
+    <sys:String x:Key="Str.Edit.EnvValue">变量值</sys:String>
+    <sys:String x:Key="Str.Edit.EnvAdd">＋ 添加变量</sys:String>
+    <sys:String x:Key="Str.Edit.EnvRemove">删除</sys:String>
+    <sys:String x:Key="Str.Edit.BrowseFile">浏览…</sys:String>
+    <sys:String x:Key="Str.Edit.BrowseDir">浏览…</sys:String>
+    <sys:String x:Key="Str.Edit.AutoStart">开机（服务启动）时自动启动</sys:String>
+    <sys:String x:Key="Str.Edit.ManualEnabled">允许手动启动</sys:String>
+    <sys:String x:Key="Str.Edit.SystemSession">在服务会话（Session 0）中运行，而非登录用户桌面</sys:String>
+    <sys:String x:Key="Str.Edit.StartInterval">依次启动时与前一个脚本的间隔（秒）</sys:String>
+    <sys:String x:Key="Str.Edit.InitialDelay">启动前延迟（秒，服务启动时等待）</sys:String>
+    <sys:String x:Key="Str.Edit.WaitForNetwork">启动前等待系统网络可用（最多 60 秒）</sys:String>
+    <sys:String x:Key="Str.Edit.RequireElevation">以最高权限运行（SYSTEM；在登录用户桌面显示）</sys:String>
+    <sys:String x:Key="Str.Edit.GroupDependency">启动依赖</sys:String>
+    <sys:String x:Key="Str.Edit.DependencyHint">勾选的脚本进入「运行中」之后，本脚本才会启动（最长等待 60 秒，超时放弃并告警）。</sys:String>
+    <sys:String x:Key="Str.Edit.DependencyEmpty">当前没有其他脚本可作为依赖。</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.DependencyCycle">依赖关系成环，无法保存：</sys:String>
+    <sys:String x:Key="Str.Edit.MaxCpu">CPU 上限（%，0=不限）</sys:String>
+    <sys:String x:Key="Str.Edit.MaxMemory">内存上限（MB，0=不限）</sys:String>
+    <sys:String x:Key="Str.Edit.MaxGpu">GPU 上限（%，0=不限）</sys:String>
+    <sys:String x:Key="Str.Edit.RestartDelay">崩溃后重启等待（秒）</sys:String>
+    <sys:String x:Key="Str.Edit.CrashPolicy">崩溃自愈策略</sys:String>
+    <sys:String x:Key="Str.Edit.CircuitMax">熔断阈值（窗口内启动次数，0=用全局默认）</sys:String>
+    <sys:String x:Key="Str.Edit.HeartbeatEnabled">启用应用层心跳</sys:String>
+    <sys:String x:Key="Str.Edit.HeartbeatInterval">心跳发送间隔（秒，供脚本参考）</sys:String>
+    <sys:String x:Key="Str.Edit.HeartbeatTimeout">心跳超时（秒）</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.NameRequired">请填写显示名称。</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.PathRequired">请填写脚本/程序路径。</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.NonNegativeInt">请输入不小于 0 的整数。</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.PositiveInt">请输入大于 0 的整数。</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.EnvKeyEmpty">存在未填写变量名的行，请补全或删除。</sys:String>
+    <sys:String x:Key="Str.Edit.RestartAsk.Title">配置已保存</sys:String>
+    <sys:String x:Key="Str.Edit.RestartAsk.Message">路径、参数、工作目录或环境变量的改动需要重启脚本后生效。现在重启「{0}」吗？</sys:String>
+    <sys:String x:Key="Str.Edit.RestartNow">立即重启</sys:String>
+    <sys:String x:Key="Str.Edit.RestartLater">稍后手动重启</sys:String>
+    <sys:String x:Key="Str.Edit.ConfigUnavailableTitle">暂时无法编辑</sys:String>
+    <sys:String x:Key="Str.Edit.ConfigUnavailableMessage">脚本配置尚未从守护服务获取（或服务未连接），为避免覆盖现有配置，请稍后重试。</sys:String>
+
+    <!-- 删除确认 -->
+    <sys:String x:Key="Str.Delete.Title">删除脚本</sys:String>
+    <sys:String x:Key="Str.Delete.Message">确定删除脚本「{0}」吗？此操作不可撤销。</sys:String>
+    <sys:String x:Key="Str.Delete.RunningWarning">该脚本正在运行，删除后将立即停止其整个进程树。</sys:String>
+
+    <!-- 崩溃策略 -->
+    <sys:String x:Key="Str.Crash.Always">总是重启</sys:String>
+    <sys:String x:Key="Str.Crash.OnFailure">仅失败时重启</sys:String>
+    <sys:String x:Key="Str.Crash.Never">不自动重启</sys:String>
+
+    <!-- 设置 -->
+    <sys:String x:Key="Str.Settings.Title">设置</sys:String>
+    <sys:String x:Key="Str.Settings.Language">界面语言</sys:String>
+    <sys:String x:Key="Str.Settings.LangZh">中文（简体）</sys:String>
+    <sys:String x:Key="Str.Settings.LangEn">English</sys:String>
+    <sys:String x:Key="Str.Settings.LangSystem">跟随系统</sys:String>
+    <sys:String x:Key="Str.Settings.NotifyFault">脚本异常退出 / 被重启 / 心跳超时时弹出托盘气泡通知</sys:String>
+    <sys:String x:Key="Str.Settings.Advanced">界面与日志</sys:String>
+    <sys:String x:Key="Str.Settings.LogMaxSize">单个日志文件上限（MB，1–1024）</sys:String>
+    <sys:String x:Key="Str.Settings.LogRetention">日志保留天数（1–3650）</sys:String>
+    <sys:String x:Key="Str.Settings.CircuitWindow">熔断统计窗口（秒，1–86400）</sys:String>
+    <sys:String x:Key="Str.Settings.CircuitMaxStarts">窗口内最大启动次数（1–1000）</sys:String>
+    <sys:String x:Key="Str.Settings.Saved">设置已保存。</sys:String>
+
+    <!-- 输出窗口（C8） -->
+    <sys:String x:Key="Str.Output.Title">实时输出：{0}</sys:String>
+    <sys:String x:Key="Str.Output.AutoScroll">自动滚动</sys:String>
+    <sys:String x:Key="Str.Output.PauseScroll">暂停滚动</sys:String>
+    <sys:String x:Key="Str.Output.Clear">清空显示</sys:String>
+    <sys:String x:Key="Str.Output.Empty">等待脚本输出…（仅显示最近 5000 行，日志落盘将在后续版本提供）</sys:String>
+
+    <!-- 外部进程（A8） -->
+    <sys:String x:Key="Str.External.Title">外部同名进程：{0}</sys:String>
+    <sys:String x:Key="Str.External.Pid">PID</sys:String>
+    <sys:String x:Key="Str.External.Process">进程名</sys:String>
+    <sys:String x:Key="Str.External.Started">启动时间</sys:String>
+    <sys:String x:Key="Str.External.Path">可执行文件路径</sys:String>
+    <sys:String x:Key="Str.External.Kill">终止选中进程</sys:String>
+    <sys:String x:Key="Str.External.Empty">未检测到同名外部进程。</sys:String>
+    <sys:String x:Key="Str.External.KillConfirmTitle">终止外部进程</sys:String>
+    <sys:String x:Key="Str.External.KillConfirmMessage">将终止非本工具托管的进程 PID {0}（{1}）。该操作不可恢复，确定继续吗？</sys:String>
+    <sys:String x:Key="Str.External.Note">本工具不会自动终止同名外部进程，仅在你显式确认后执行。</sys:String>
+
+    <!-- 心跳（H2） -->
+    <sys:String x:Key="Str.Heartbeat.Title">心跳命令：{0}</sys:String>
+    <sys:String x:Key="Str.Heartbeat.UnixPlaceholder">Unix秒时间戳</sys:String>
+    <sys:String x:Key="Str.Heartbeat.Intro">脚本内按建议间隔调用以下命令上报心跳；令牌已随配置加密保护保存：</sys:String>
+    <sys:String x:Key="Str.Heartbeat.Reset">重置令牌</sys:String>
+    <sys:String x:Key="Str.Heartbeat.ResetConfirmTitle">重置心跳令牌</sys:String>
+    <sys:String x:Key="Str.Heartbeat.ResetConfirmMessage">重置后旧令牌立即失效，正在使用旧令牌的脚本将被判心跳超时。确定重置吗？</sys:String>
+
+    <!-- 导入/导出配置与诊断包（D7/D8） -->
+    <sys:String x:Key="Str.Toolbar.ImportConfig">导入配置</sys:String>
+    <sys:String x:Key="Str.Toolbar.ExportConfig">导出配置</sys:String>
+    <sys:String x:Key="Str.Toolbar.ExportDiagnostics">导出诊断包</sys:String>
+    <sys:String x:Key="Str.Toolbar.AddFromTemplate">从模板新建</sys:String>
+    <sys:String x:Key="Str.ExportConfig.IncludeTokenTitle">导出配置</sys:String>
+    <sys:String x:Key="Str.ExportConfig.IncludeTokenMessage">是否随文件一并导出心跳令牌？令牌属于密钥，换一台机器运行时应重新生成。</sys:String>
+    <sys:String x:Key="Str.ExportConfig.IncludeTokenCheck">包含心跳令牌（换机器需重新生成）</sys:String>
+    <sys:String x:Key="Str.ExportConfig.FileFilter">配置文件 (*.json)|*.json|所有文件 (*.*)|*.*</sys:String>
+    <sys:String x:Key="Str.ExportConfig.Done">配置已导出：{0}</sys:String>
+    <sys:String x:Key="Str.ExportConfig.Failed">导出配置失败。</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ConfirmTitle">导入配置</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ConfirmMessage">导入会替换现有脚本配置（被替换的脚本将停止运行）。确定继续吗？</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ReplaceSettingsCheck">连同全局设置一起替换</sys:String>
+    <sys:String x:Key="Str.ImportConfig.FileFilter">配置文件 (*.json)|*.json|所有文件 (*.*)|*.*</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ReadFailed">读取配置文件失败：</sys:String>
+    <sys:String x:Key="Str.ImportConfig.Done">已导入 {0} 个脚本。</sys:String>
+    <sys:String x:Key="Str.ImportConfig.Failed">导入失败（文件非法、依赖成环或服务端拒绝）。</sys:String>
+    <sys:String x:Key="Str.Diagnostics.Done">诊断包已导出：{0}</sys:String>
+    <sys:String x:Key="Str.Diagnostics.Failed">导出诊断包失败。</sys:String>
+
+    <!-- 脚本模板库（D9） -->
+    <sys:String x:Key="Str.Template.PickerTitle">从模板新建脚本</sys:String>
+    <sys:String x:Key="Str.Template.PickerIntro">选择一个内置模板，脚本字段会自动预填（你仍可修改）；右侧可查看并复制示例脚本文本。模板文件不落盘，需另存为脚本后把路径填回编辑窗。</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatBat.Name">心跳上报（批处理）</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatBat.Desc">用 bat 每隔 30 秒向 StartupTool 发送一次心跳，失败即停止。</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPowerShell.Name">心跳上报（PowerShell）</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPowerShell.Desc">用 PowerShell 每隔 30 秒发送一次心跳，失败即停止。</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPython.Name">心跳上报（Python）</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPython.Desc">用 Python 每隔 30 秒发送一次心跳，失败即停止。</sys:String>
+    <sys:String x:Key="Str.Template.MapNetworkDrive.Name">映射网络驱动器</sys:String>
+    <sys:String x:Key="Str.Template.MapNetworkDrive.Desc">开机等待网络就绪后，用 net use 挂载一个网络盘。</sys:String>
+    <sys:String x:Key="Str.Template.CleanTempFiles.Name">清理临时文件</sys:String>
+    <sys:String x:Key="Str.Template.CleanTempFiles.Desc">清理 %TEMP% 与系统临时目录中超过 N 天的文件。</sys:String>
+    <sys:String x:Key="Str.Template.WindowsService.Name">启动 Windows 服务</sys:String>
+    <sys:String x:Key="Str.Template.WindowsService.Desc">以提权方式把一个 Windows 服务设为自动并启动。</sys:String>
+    <sys:String x:Key="Str.Template.WaitNetworkStart.Name">等待网络后启动程序</sys:String>
+    <sys:String x:Key="Str.Template.WaitNetworkStart.Desc">等待网络可用后启动指定程序；找不到则报错退出。</sys:String>
+
+    <!-- 托盘（C7/C10/C11） -->
+    <sys:String x:Key="Str.Tray.Show">显示主窗口</sys:String>
+    <sys:String x:Key="Str.Tray.Hide">隐藏</sys:String>
+    <sys:String x:Key="Str.Tray.StopAll">全部停止</sys:String>
+    <sys:String x:Key="Str.Tray.Exit">退出控制端</sys:String>
+    <sys:String x:Key="Str.Tray.Summary">{0}/{1} 个脚本运行中</sys:String>
+    <sys:String x:Key="Str.Tray.Scripts">脚本快捷操作</sys:String>
+    <sys:String x:Key="Str.Tray.ExitConfirmTitle">退出控制端</sys:String>
+    <sys:String x:Key="Str.Tray.ExitConfirmMessage">退出控制端不影响后台守护服务，脚本仍会继续运行。确定退出吗？</sys:String>
+    <sys:String x:Key="Str.Tray.HideTitle">程序仍在托盘运行</sys:String>
+    <sys:String x:Key="Str.Tray.HideMessage">窗口已最小化到托盘，脚本守护不受影响。需要退出时请右键托盘图标选择「退出控制端」。</sys:String>
+    <sys:String x:Key="Str.Tray.DontShowAgain">不再提醒</sys:String>
+
+    <!-- 时间格式 -->
+    <sys:String x:Key="Str.Time.HoursMinutes">{0}时{1}分</sys:String>
+    <sys:String x:Key="Str.Time.MinutesSeconds">{0}分{1}秒</sys:String>
+    <sys:String x:Key="Str.Time.Seconds">{0}秒</sys:String>
+    <sys:String x:Key="Str.Time.Never">从未</sys:String>
+    <sys:String x:Key="Str.Time.Ago">{0}前</sys:String>
+</ResourceDictionary>

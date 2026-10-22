@@ -1,0 +1,25 @@
+# 构建产物
+bin/
+obj/
+build/
+publish/
+
+# 本地工具（WiX v4，按需安装）
+tools/
+
+# 运行期数据（含实际脚本配置与日志，不入库）
+config/
+logs/
+
+# 测试与诊断临时产物
+TestResults/
+*.trx
+*.log
+*.tmp
+
+# IDE / 用户设置
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo

@@ -1,0 +1,305 @@
+<Window x:Class="StartupTool.App.Views.ScriptEditWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:StartupTool.App.Converters"
+        Title="Edit" Width="700" SizeToContent="Height" MaxHeight="760"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+
+    <Window.Resources>
+        <conv:CrashPolicyConverter x:Key="CrashPolicyConverter" />
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+
+        <!-- 校验失败：红框即时反馈（C3） -->
+        <Style x:Key="EditTextBox" TargetType="TextBox" BasedOn="{StaticResource BaseTextBox}">
+            <Setter Property="Validation.ErrorTemplate">
+                <Setter.Value>
+                    <ControlTemplate>
+                        <Border BorderBrush="#C42B1C" BorderThickness="1.5" CornerRadius="4">
+                            <AdornedElementPlaceholder />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="20" LastChildFill="True">
+        <!-- 底部按钮 -->
+        <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource DividerBrush}"
+                BorderThickness="0,1,0,0" Padding="0,14,0,0" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Style="{DynamicResource SubtleButton}" Width="100" Margin="0,0,8,0"
+                        IsCancel="True" Content="{DynamicResource Str.Common.Cancel}" />
+                <Button x:Name="SaveButton" Style="{DynamicResource AccentButton}" Width="100"
+                        IsDefault="True" Content="{DynamicResource Str.Common.Save}"
+                        IsEnabled="{Binding CanSave}"
+                        Click="Save_Click" />
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+
+                <!-- 基本信息 -->
+                <Border Style="{DynamicResource CardBorder}" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Str.Edit.GroupBasic}" FontWeight="SemiBold"
+                                   FontSize="14" Margin="0,0,0,10" />
+                        <Grid Margin="0,4">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.Path}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" />
+                                <TextBox x:Name="PathBox" Style="{StaticResource EditTextBox}"
+                                         Text="{Binding Path, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
+                                    Margin="0,24,0,0" Content="{DynamicResource Str.Edit.BrowseFile}"
+                                    Click="BrowseFile_Click" />
+                        </Grid>
+
+                        <!-- D10：Python 解释器（虚拟环境）——只对 .py/.pyw 生效，留空回退系统 Python -->
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.PythonExecutable}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap"
+                                           ToolTip="{DynamicResource Str.Edit.PythonExecutableHint}" />
+                                <TextBox Style="{StaticResource BaseTextBox}"
+                                         ToolTip="{DynamicResource Str.Edit.PythonExecutableHint}"
+                                         Text="{Binding PythonExecutable, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
+                                    Margin="0,24,0,0" Content="{DynamicResource Str.Edit.BrowseFile}"
+                                    Click="BrowsePython_Click" />
+                        </Grid>
+                        <StackPanel Margin="0,10,0,0">
+                            <TextBlock Text="{DynamicResource Str.Edit.Name}" Margin="0,0,0,4"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBox Style="{StaticResource EditTextBox}"
+                                     Text="{Binding Name, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True}" />
+                        </StackPanel>
+                        <StackPanel Margin="0,10,0,0">
+                            <TextBlock Text="{DynamicResource Str.Edit.Arguments}" Margin="0,0,0,4"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <TextBox Style="{StaticResource BaseTextBox}"
+                                     Text="{Binding Arguments, UpdateSourceTrigger=PropertyChanged}" />
+                        </StackPanel>
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="32" />
+                                <ColumnDefinition Width="120" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.WorkingDir}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource BaseTextBox}"
+                                         Text="{Binding WorkingDirectory, UpdateSourceTrigger=PropertyChanged}" />
+                            </StackPanel>
+                            <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
+                                    Margin="0,24,0,0" Content="{DynamicResource Str.Edit.BrowseDir}"
+                                    Click="BrowseDir_Click" />
+                        </Grid>
+
+                        <TextBlock Text="{DynamicResource Str.Edit.Environment}" Margin="0,14,0,6"
+                                   Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <ItemsControl ItemsSource="{Binding EnvVars}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,0,0,6">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="220" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="72" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Style="{StaticResource BaseTextBox}" Margin="0,0,8,0"
+                                                 Text="{Binding Key, UpdateSourceTrigger=PropertyChanged}" />
+                                        <TextBox Grid.Column="1" Style="{StaticResource BaseTextBox}" Margin="0,0,8,0"
+                                                 Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" />
+                                        <Button Grid.Column="2" Style="{DynamicResource SubtleButton}"
+                                                Content="{DynamicResource Str.Edit.EnvRemove}"
+                                                Command="{Binding DataContext.RemoveEnvVarCommand,
+                                                    RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Button Style="{DynamicResource SubtleButton}" HorizontalAlignment="Left"
+                                Margin="0,2,0,0" Content="{DynamicResource Str.Edit.EnvAdd}"
+                                Command="{Binding AddEnvVarCommand}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 启动设置 -->
+                <Border Style="{DynamicResource CardBorder}" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Str.Edit.GroupStart}" FontWeight="SemiBold"
+                                   FontSize="14" Margin="0,0,0,6" />
+                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,4"
+                                  Content="{DynamicResource Str.Edit.AutoStart}"
+                                  IsChecked="{Binding AutoStart}" />
+                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,4"
+                                  Content="{DynamicResource Str.Edit.ManualEnabled}"
+                                  IsChecked="{Binding ManualEnabled}" />
+                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,4"
+                                  Content="{DynamicResource Str.Edit.SystemSession}"
+                                  IsChecked="{Binding RunInSystemSession}" />
+                        <Grid Margin="0,8,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="180" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.StartInterval}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding StartIntervalSeconds, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{DynamicResource Str.Edit.InitialDelay}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding InitialDelaySeconds, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                        </Grid>
+                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,10,0,0"
+                                  Content="{DynamicResource Str.Edit.WaitForNetwork}"
+                                  IsChecked="{Binding WaitForNetwork}" />
+                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,4,0,0"
+                                  Content="{DynamicResource Str.Edit.RequireElevation}"
+                                  IsChecked="{Binding RequireElevation}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 启动依赖（D4） -->
+                <Border Style="{DynamicResource CardBorder}" Padding="16,12" Margin="0,0,0,12">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Str.Edit.GroupDependency}" FontWeight="SemiBold"
+                                   FontSize="14" Margin="0,0,0,6" />
+                        <TextBlock Text="{DynamicResource Str.Edit.DependencyHint}" TextWrapping="Wrap"
+                                   Margin="0,0,0,8" Foreground="{DynamicResource TextSecondaryBrush}" />
+                        <ScrollViewer MaxHeight="120" VerticalScrollBarVisibility="Auto">
+                            <ItemsControl ItemsSource="{Binding Dependencies}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,2"
+                                                  Content="{Binding Name}"
+                                                  IsChecked="{Binding IsSelected}" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+                        <TextBlock Text="{DynamicResource Str.Edit.DependencyEmpty}" Margin="0,2,0,0"
+                                   Foreground="{DynamicResource TextSecondaryBrush}"
+                                   Visibility="{Binding NoDependencies, Converter={StaticResource BoolToVis}}" />
+                        <TextBlock Text="{Binding DependencyErrorText}" Margin="0,6,0,0" TextWrapping="Wrap"
+                                   Foreground="#C42B1C"
+                                   Visibility="{Binding HasDependencyError, Converter={StaticResource BoolToVis}}" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 守护与资源 -->
+                <Border Style="{DynamicResource CardBorder}" Padding="16,12">
+                    <StackPanel>
+                        <TextBlock Text="{DynamicResource Str.Edit.GroupGuard}" FontWeight="SemiBold"
+                                   FontSize="14" Margin="0,0,0,6" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.MaxCpu}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding MaxCpuPercent, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{DynamicResource Str.Edit.MaxMemory}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding MaxMemoryMb, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="4">
+                                <TextBlock Text="{DynamicResource Str.Edit.MaxGpu}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding MaxGpuPercent, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                        </Grid>
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.RestartDelay}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding RestartDelaySeconds, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{DynamicResource Str.Edit.CircuitMax}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding MaxRestartsPerWindow, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                        </Grid>
+                        <StackPanel Margin="0,12,0,0" MaxWidth="320">
+                            <TextBlock Text="{DynamicResource Str.Edit.CrashPolicy}" Margin="0,0,0,4"
+                                       Foreground="{DynamicResource TextSecondaryBrush}" />
+                            <ComboBox Style="{DynamicResource BaseComboBox}"
+                                      ItemsSource="{Binding CrashPolicies}"
+                                      SelectedItem="{Binding CrashRestart}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <TextBlock Text="{Binding Converter={StaticResource CrashPolicyConverter}}" />
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </StackPanel>
+
+                        <CheckBox Style="{DynamicResource BaseCheckBox}" Margin="0,12,0,4"
+                                  Content="{DynamicResource Str.Edit.HeartbeatEnabled}"
+                                  IsChecked="{Binding HeartbeatEnabled}" />
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="16" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Grid.Column="0">
+                                <TextBlock Text="{DynamicResource Str.Edit.HeartbeatInterval}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding HeartbeatIntervalSeconds, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2">
+                                <TextBlock Text="{DynamicResource Str.Edit.HeartbeatTimeout}" Margin="0,0,0,4"
+                                           Foreground="{DynamicResource TextSecondaryBrush}" TextWrapping="Wrap" />
+                                <TextBox Style="{StaticResource EditTextBox}"
+                                         Text="{Binding HeartbeatTimeoutSeconds, UpdateSourceTrigger=PropertyChanged, ValidatesOnNotifyDataErrors=True, ValidatesOnExceptions=True}" />
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</Window>

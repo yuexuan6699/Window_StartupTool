@@ -1,0 +1,251 @@
+<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=System.Runtime">
+
+    <!-- English UI strings. Every visible text must reference a key from this dictionary (C13). -->
+
+    <sys:String x:Key="Str.App.Title">StartupTool Console</sys:String>
+
+    <!-- Common -->
+    <sys:String x:Key="Str.Common.Add">Add script</sys:String>
+    <sys:String x:Key="Str.Common.Edit">Edit</sys:String>
+    <sys:String x:Key="Str.Common.Delete">Delete</sys:String>
+    <sys:String x:Key="Str.Common.Save">Save</sys:String>
+    <sys:String x:Key="Str.Common.Cancel">Cancel</sys:String>
+    <sys:String x:Key="Str.Common.Close">Close</sys:String>
+    <sys:String x:Key="Str.Common.Confirm">OK</sys:String>
+    <sys:String x:Key="Str.Common.Refresh">Refresh</sys:String>
+    <sys:String x:Key="Str.Common.Start">Start</sys:String>
+    <sys:String x:Key="Str.Common.Stop">Stop</sys:String>
+    <sys:String x:Key="Str.Common.Restart">Restart</sys:String>
+    <sys:String x:Key="Str.Common.Yes">Yes</sys:String>
+    <sys:String x:Key="Str.Common.No">No</sys:String>
+    <sys:String x:Key="Str.Common.OK">OK</sys:String>
+    <sys:String x:Key="Str.Common.Copy">Copy</sys:String>
+    <sys:String x:Key="Str.Common.Copied">Copied to clipboard.</sys:String>
+    <sys:String x:Key="Str.Common.Error">Action failed</sys:String>
+    <sys:String x:Key="Str.Common.CommError">Communication error</sys:String>
+    <sys:String x:Key="Str.Common.RejectedByService">The service rejected the action: {0}</sys:String>
+
+    <!-- Connection -->
+    <sys:String x:Key="Str.Conn.Connected">Connected to the guard service</sys:String>
+    <sys:String x:Key="Str.Conn.Disconnected">Service is not running (retrying automatically…)</sys:String>
+    <sys:String x:Key="Str.Conn.Reconnected">Connected.</sys:String>
+
+    <!-- Main window -->
+    <sys:String x:Key="Str.Main.StopAll">Stop all</sys:String>
+    <sys:String x:Key="Str.Main.Settings">Settings</sys:String>
+    <sys:String x:Key="Str.Main.SearchWatermark">Search scripts by name…</sys:String>
+    <sys:String x:Key="Str.Main.Ready">Ready.</sys:String>
+    <sys:String x:Key="Str.Main.Empty">No scripts yet. Click “Add script” to configure one.</sys:String>
+    <sys:String x:Key="Str.Main.OpenConfigFile">Open config file</sys:String>
+    <sys:String x:Key="Str.Main.OpenLogsFolder">Open logs folder</sys:String>
+
+    <!-- Columns -->
+    <sys:String x:Key="Str.Col.Name">Name</sys:String>
+    <sys:String x:Key="Str.Col.State">State</sys:String>
+    <sys:String x:Key="Str.Col.Pid">PID</sys:String>
+    <sys:String x:Key="Str.Col.Session">Session</sys:String>
+    <sys:String x:Key="Str.Col.Uptime">Uptime</sys:String>
+    <sys:String x:Key="Str.Col.Restarts">Restarts</sys:String>
+    <sys:String x:Key="Str.Col.LastFault">Last fault</sys:String>
+    <sys:String x:Key="Str.Col.Cpu">CPU</sys:String>
+    <sys:String x:Key="Str.Col.Memory">Memory</sys:String>
+    <sys:String x:Key="Str.Col.Gpu">GPU</sys:String>
+    <sys:String x:Key="Str.Col.LastBeat">Last heartbeat</sys:String>
+    <sys:String x:Key="Str.Col.External">External</sys:String>
+    <sys:String x:Key="Str.Col.ExitCode">Exit code</sys:String>
+    <sys:String x:Key="Str.Col.Ops">Actions</sys:String>
+
+    <!-- States (C14) -->
+    <sys:String x:Key="Str.State.Running">● Running</sys:String>
+    <sys:String x:Key="Str.State.Stopped">Stopped</sys:String>
+    <sys:String x:Key="Str.State.Starting">Starting…</sys:String>
+    <sys:String x:Key="Str.State.Stopping">Stopping…</sys:String>
+    <sys:String x:Key="Str.State.Faulted">▲ Circuit breaker open</sys:String>
+    <sys:String x:Key="Str.State.Waiting">Waiting for sign-in</sys:String>
+    <sys:String x:Key="Str.State.HeartbeatTimedOut">Heartbeat timed out</sys:String>
+    <sys:String x:Key="Str.State.HeartbeatOk">OK</sys:String>
+    <sys:String x:Key="Str.State.Unknown">—</sys:String>
+    <sys:String x:Key="Str.State.UnknownShort">—</sys:String>
+    <sys:String x:Key="Str.State.ExternalCount">{0} external</sys:String>
+    <sys:String x:Key="Str.State.SessionActive">Session {0}</sys:String>
+
+    <!-- Row actions -->
+    <sys:String x:Key="Str.Row.ResumeGuard">Resume guard</sys:String>
+    <sys:String x:Key="Str.Row.Output">Output</sys:String>
+
+    <!-- Context menu (C6) -->
+    <sys:String x:Key="Str.Menu.Edit">Edit script…</sys:String>
+    <sys:String x:Key="Str.Menu.Output">View live output</sys:String>
+    <sys:String x:Key="Str.Menu.Heartbeat">Heartbeat command…</sys:String>
+    <sys:String x:Key="Str.Menu.External">External processes…</sys:String>
+    <sys:String x:Key="Str.Menu.OpenLocation">Open file location</sys:String>
+    <sys:String x:Key="Str.Menu.MoveUp">Move up</sys:String>
+    <sys:String x:Key="Str.Menu.MoveDown">Move down</sys:String>
+    <sys:String x:Key="Str.Menu.Delete">Delete script…</sys:String>
+    <sys:String x:Key="Str.Menu.ResumeGuard">Resume guard and start</sys:String>
+
+    <!-- Edit dialog (C1/C3) -->
+    <sys:String x:Key="Str.Edit.TitleAdd">Add script</sys:String>
+    <sys:String x:Key="Str.Edit.TitleEdit">Edit script: {0}</sys:String>
+    <sys:String x:Key="Str.Edit.GroupBasic">General</sys:String>
+    <sys:String x:Key="Str.Edit.GroupStart">Startup</sys:String>
+    <sys:String x:Key="Str.Edit.GroupGuard">Guard &amp; resources</sys:String>
+    <sys:String x:Key="Str.Edit.Name">Display name</sys:String>
+    <sys:String x:Key="Str.Edit.Path">Script / executable path</sys:String>
+    <sys:String x:Key="Str.Edit.Arguments">Command-line arguments</sys:String>
+    <sys:String x:Key="Str.Edit.PythonExecutable">Python interpreter (.py/.pyw only; empty = system Python)</sys:String>
+    <sys:String x:Key="Str.Edit.PythonExecutableHint">No need to activate the virtual environment: just pick its Scripts\python.exe (the folder name is arbitrary, e.g. .venv, venv, env, myenv). When empty, the system py.exe or python.exe is used. Ignored for non-Python scripts.</sys:String>
+    <sys:String x:Key="Str.Edit.BrowsePythonTitle">Select Python interpreter</sys:String>
+    <sys:String x:Key="Str.Edit.WorkingDir">Working directory (empty = script folder)</sys:String>
+    <sys:String x:Key="Str.Edit.Environment">Environment variables</sys:String>
+    <sys:String x:Key="Str.Edit.EnvKey">Name</sys:String>
+    <sys:String x:Key="Str.Edit.EnvValue">Value</sys:String>
+    <sys:String x:Key="Str.Edit.EnvAdd">＋ Add variable</sys:String>
+    <sys:String x:Key="Str.Edit.EnvRemove">Remove</sys:String>
+    <sys:String x:Key="Str.Edit.BrowseFile">Browse…</sys:String>
+    <sys:String x:Key="Str.Edit.BrowseDir">Browse…</sys:String>
+    <sys:String x:Key="Str.Edit.AutoStart">Start automatically at boot (service start)</sys:String>
+    <sys:String x:Key="Str.Edit.ManualEnabled">Allow manual start</sys:String>
+    <sys:String x:Key="Str.Edit.SystemSession">Run in the service session (Session 0), not the signed-in user’s desktop</sys:String>
+    <sys:String x:Key="Str.Edit.StartInterval">Delay after the previous script when starting in order (seconds)</sys:String>
+    <sys:String x:Key="Str.Edit.InitialDelay">Delay before start (seconds, waits at service start)</sys:String>
+    <sys:String x:Key="Str.Edit.WaitForNetwork">Wait for network availability before starting (up to 60 s)</sys:String>
+    <sys:String x:Key="Str.Edit.RequireElevation">Run with highest privileges (SYSTEM; shown on the signed-in user’s desktop)</sys:String>
+    <sys:String x:Key="Str.Edit.GroupDependency">Startup dependencies</sys:String>
+    <sys:String x:Key="Str.Edit.DependencyHint">This script starts only after the checked scripts reach “Running” (waits up to 60 s, then gives up and reports a fault).</sys:String>
+    <sys:String x:Key="Str.Edit.DependencyEmpty">No other scripts are available as dependencies.</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.DependencyCycle">Dependency cycle detected; cannot save:</sys:String>
+    <sys:String x:Key="Str.Edit.MaxCpu">CPU limit (%, 0 = no limit)</sys:String>
+    <sys:String x:Key="Str.Edit.MaxMemory">Memory limit (MB, 0 = no limit)</sys:String>
+    <sys:String x:Key="Str.Edit.MaxGpu">GPU limit (%, 0 = no limit)</sys:String>
+    <sys:String x:Key="Str.Edit.RestartDelay">Wait before restart after a crash (seconds)</sys:String>
+    <sys:String x:Key="Str.Edit.CrashPolicy">Crash recovery policy</sys:String>
+    <sys:String x:Key="Str.Edit.CircuitMax">Circuit-breaker threshold (starts within the window, 0 = global default)</sys:String>
+    <sys:String x:Key="Str.Edit.HeartbeatEnabled">Enable application heartbeat</sys:String>
+    <sys:String x:Key="Str.Edit.HeartbeatInterval">Heartbeat interval hint (seconds, for the script)</sys:String>
+    <sys:String x:Key="Str.Edit.HeartbeatTimeout">Heartbeat timeout (seconds)</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.NameRequired">Please enter a display name.</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.PathRequired">Please enter the script / executable path.</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.NonNegativeInt">Please enter a non-negative integer.</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.PositiveInt">Please enter a positive integer.</sys:String>
+    <sys:String x:Key="Str.Edit.Validate.EnvKeyEmpty">Some variable names are empty. Fill or remove them.</sys:String>
+    <sys:String x:Key="Str.Edit.RestartAsk.Title">Settings saved</sys:String>
+    <sys:String x:Key="Str.Edit.RestartAsk.Message">Changes to path, arguments, working directory or environment variables take effect after a restart. Restart “{0}” now?</sys:String>
+    <sys:String x:Key="Str.Edit.RestartNow">Restart now</sys:String>
+    <sys:String x:Key="Str.Edit.RestartLater">I’ll restart later</sys:String>
+    <sys:String x:Key="Str.Edit.ConfigUnavailableTitle">Editing unavailable</sys:String>
+    <sys:String x:Key="Str.Edit.ConfigUnavailableMessage">The script configuration has not been loaded from the guard service (or the service is disconnected). To avoid overwriting the existing configuration, please try again later.</sys:String>
+
+    <!-- Delete confirm -->
+    <sys:String x:Key="Str.Delete.Title">Delete script</sys:String>
+    <sys:String x:Key="Str.Delete.Message">Delete script “{0}”? This cannot be undone.</sys:String>
+    <sys:String x:Key="Str.Delete.RunningWarning">This script is running. Deleting it will immediately terminate its whole process tree.</sys:String>
+
+    <!-- Crash policy -->
+    <sys:String x:Key="Str.Crash.Always">Always restart</sys:String>
+    <sys:String x:Key="Str.Crash.OnFailure">Restart on failure only</sys:String>
+    <sys:String x:Key="Str.Crash.Never">Never restart automatically</sys:String>
+
+    <!-- Settings -->
+    <sys:String x:Key="Str.Settings.Title">Settings</sys:String>
+    <sys:String x:Key="Str.Settings.Language">Interface language</sys:String>
+    <sys:String x:Key="Str.Settings.LangZh">中文（简体）</sys:String>
+    <sys:String x:Key="Str.Settings.LangEn">English</sys:String>
+    <sys:String x:Key="Str.Settings.LangSystem">Use system setting</sys:String>
+    <sys:String x:Key="Str.Settings.NotifyFault">Show a tray balloon when a script exits abnormally, is restarted, or its heartbeat times out</sys:String>
+    <sys:String x:Key="Str.Settings.Advanced">Interface and logs</sys:String>
+    <sys:String x:Key="Str.Settings.LogMaxSize">Max log file size (MB, 1–1024)</sys:String>
+    <sys:String x:Key="Str.Settings.LogRetention">Log retention (days, 1–3650)</sys:String>
+    <sys:String x:Key="Str.Settings.CircuitWindow">Circuit stats window (seconds, 1–86400)</sys:String>
+    <sys:String x:Key="Str.Settings.CircuitMaxStarts">Max starts per window (1–1000)</sys:String>
+    <sys:String x:Key="Str.Settings.Saved">Settings saved.</sys:String>
+
+    <!-- Output window (C8) -->
+    <sys:String x:Key="Str.Output.Title">Live output: {0}</sys:String>
+    <sys:String x:Key="Str.Output.AutoScroll">Auto-scroll</sys:String>
+    <sys:String x:Key="Str.Output.PauseScroll">Pause scrolling</sys:String>
+    <sys:String x:Key="Str.Output.Clear">Clear view</sys:String>
+    <sys:String x:Key="Str.Output.Empty">Waiting for script output… (last 5000 lines shown; file logging will arrive in a later version)</sys:String>
+
+    <!-- External processes (A8) -->
+    <sys:String x:Key="Str.External.Title">External processes: {0}</sys:String>
+    <sys:String x:Key="Str.External.Pid">PID</sys:String>
+    <sys:String x:Key="Str.External.Process">Process</sys:String>
+    <sys:String x:Key="Str.External.Started">Started at</sys:String>
+    <sys:String x:Key="Str.External.Path">Executable path</sys:String>
+    <sys:String x:Key="Str.External.Kill">Terminate selected process</sys:String>
+    <sys:String x:Key="Str.External.Empty">No external process with the same name detected.</sys:String>
+    <sys:String x:Key="Str.External.KillConfirmTitle">Terminate external process</sys:String>
+    <sys:String x:Key="Str.External.KillConfirmMessage">This terminates a process NOT managed by StartupTool: PID {0} ({1}). This cannot be undone. Continue?</sys:String>
+    <sys:String x:Key="Str.External.Note">StartupTool never terminates external processes automatically; it acts only after your explicit confirmation.</sys:String>
+
+    <!-- Heartbeat (H2) -->
+    <sys:String x:Key="Str.Heartbeat.Title">Heartbeat command: {0}</sys:String>
+    <sys:String x:Key="Str.Heartbeat.UnixPlaceholder">Unix timestamp in seconds</sys:String>
+    <sys:String x:Key="Str.Heartbeat.Intro">Call the command below from the script at the suggested interval. The token is stored in the ACL-protected config:</sys:String>
+    <sys:String x:Key="Str.Heartbeat.Reset">Reset token</sys:String>
+    <sys:String x:Key="Str.Heartbeat.ResetConfirmTitle">Reset heartbeat token</sys:String>
+    <sys:String x:Key="Str.Heartbeat.ResetConfirmMessage">After reset, the old token becomes invalid immediately and the script will be treated as timed out. Reset anyway?</sys:String>
+
+    <!-- Import/export config & diagnostics (D7/D8) -->
+    <sys:String x:Key="Str.Toolbar.ImportConfig">Import config</sys:String>
+    <sys:String x:Key="Str.Toolbar.ExportConfig">Export config</sys:String>
+    <sys:String x:Key="Str.Toolbar.ExportDiagnostics">Export diagnostics</sys:String>
+    <sys:String x:Key="Str.Toolbar.AddFromTemplate">New from template</sys:String>
+    <sys:String x:Key="Str.ExportConfig.IncludeTokenTitle">Export configuration</sys:String>
+    <sys:String x:Key="Str.ExportConfig.IncludeTokenMessage">Export heartbeat tokens with the file? Tokens are secrets and should be regenerated after moving to another machine.</sys:String>
+    <sys:String x:Key="Str.ExportConfig.IncludeTokenCheck">Include heartbeat tokens (regenerate after moving)</sys:String>
+    <sys:String x:Key="Str.ExportConfig.FileFilter">Config files (*.json)|*.json|All files (*.*)|*.*</sys:String>
+    <sys:String x:Key="Str.ExportConfig.Done">Configuration exported: {0}</sys:String>
+    <sys:String x:Key="Str.ExportConfig.Failed">Exporting the configuration failed.</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ConfirmTitle">Import configuration</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ConfirmMessage">Importing replaces the existing script configuration (replaced scripts will stop running). Continue?</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ReplaceSettingsCheck">Also replace global settings</sys:String>
+    <sys:String x:Key="Str.ImportConfig.FileFilter">Config files (*.json)|*.json|All files (*.*)|*.*</sys:String>
+    <sys:String x:Key="Str.ImportConfig.ReadFailed">Failed to read the configuration file: </sys:String>
+    <sys:String x:Key="Str.ImportConfig.Done">Imported {0} script(s).</sys:String>
+    <sys:String x:Key="Str.ImportConfig.Failed">Import failed (invalid file, dependency cycle, or rejected by the service).</sys:String>
+    <sys:String x:Key="Str.Diagnostics.Done">Diagnostics exported: {0}</sys:String>
+    <sys:String x:Key="Str.Diagnostics.Failed">Exporting the diagnostics failed.</sys:String>
+
+    <!-- Script template library (D9) -->
+    <sys:String x:Key="Str.Template.PickerTitle">New script from template</sys:String>
+    <sys:String x:Key="Str.Template.PickerIntro">Pick a built-in template to pre-fill the script fields (you can still edit them). The example script text on the right can be viewed and copied. Templates are not persisted; save the script and set its path in the editor.</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatBat.Name">Heartbeat (batch)</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatBat.Desc">Send a heartbeat to StartupTool every 30 s from a batch script; stop on failure.</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPowerShell.Name">Heartbeat (PowerShell)</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPowerShell.Desc">Send a heartbeat every 30 s from PowerShell; stop on failure.</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPython.Name">Heartbeat (Python)</sys:String>
+    <sys:String x:Key="Str.Template.HeartbeatPython.Desc">Send a heartbeat every 30 s from Python; stop on failure.</sys:String>
+    <sys:String x:Key="Str.Template.MapNetworkDrive.Name">Map network drive</sys:String>
+    <sys:String x:Key="Str.Template.MapNetworkDrive.Desc">Wait for the network, then mount a network drive with net use.</sys:String>
+    <sys:String x:Key="Str.Template.CleanTempFiles.Name">Clean temp files</sys:String>
+    <sys:String x:Key="Str.Template.CleanTempFiles.Desc">Delete files older than N days from %TEMP% and the system temp directory.</sys:String>
+    <sys:String x:Key="Str.Template.WindowsService.Name">Start Windows service</sys:String>
+    <sys:String x:Key="Str.Template.WindowsService.Desc">Set a Windows service to automatic and start it with elevation.</sys:String>
+    <sys:String x:Key="Str.Template.WaitNetworkStart.Name">Start program after network</sys:String>
+    <sys:String x:Key="Str.Template.WaitNetworkStart.Desc">Wait for the network, then launch the given program; exit on error if missing.</sys:String>
+
+    <!-- Tray (C7/C10/C11) -->
+    <sys:String x:Key="Str.Tray.Show">Show main window</sys:String>
+    <sys:String x:Key="Str.Tray.Hide">Hide</sys:String>
+    <sys:String x:Key="Str.Tray.StopAll">Stop all</sys:String>
+    <sys:String x:Key="Str.Tray.Exit">Exit console</sys:String>
+    <sys:String x:Key="Str.Tray.Summary">{0}/{1} scripts running</sys:String>
+    <sys:String x:Key="Str.Tray.Scripts">Quick actions</sys:String>
+    <sys:String x:Key="Str.Tray.ExitConfirmTitle">Exit console</sys:String>
+    <sys:String x:Key="Str.Tray.ExitConfirmMessage">Exiting the console does not affect the background guard service; scripts keep running. Exit anyway?</sys:String>
+    <sys:String x:Key="Str.Tray.HideTitle">Still running in the tray</sys:String>
+    <sys:String x:Key="Str.Tray.HideMessage">The window was minimized to the tray; script guarding is unaffected. To exit, right-click the tray icon and choose “Exit console”.</sys:String>
+    <sys:String x:Key="Str.Tray.DontShowAgain">Don’t show this again</sys:String>
+
+    <!-- Time formatting -->
+    <sys:String x:Key="Str.Time.HoursMinutes">{0}h {1}m</sys:String>
+    <sys:String x:Key="Str.Time.MinutesSeconds">{0}m {1}s</sys:String>
+    <sys:String x:Key="Str.Time.Seconds">{0}s</sys:String>
+    <sys:String x:Key="Str.Time.Never">Never</sys:String>
+    <sys:String x:Key="Str.Time.Ago">{0} ago</sys:String>
+</ResourceDictionary>

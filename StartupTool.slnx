@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/StartupTool.App/StartupTool.App.csproj" />
+    <Project Path="src/StartupTool.Core/StartupTool.Core.csproj" />
+    <Project Path="src/StartupTool.Service/StartupTool.Service.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/StartupTool.Core.Tests/StartupTool.Core.Tests.csproj" />
+  </Folder>
+</Solution>

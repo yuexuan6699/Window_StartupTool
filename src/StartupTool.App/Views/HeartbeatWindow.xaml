@@ -1,0 +1,33 @@
+<Window x:Class="StartupTool.App.Views.HeartbeatWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:StartupTool.App.Converters"
+        Title="Heartbeat" Width="620" SizeToContent="Height"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+        Background="{DynamicResource WindowBackgroundBrush}">
+    <Window.Resources>
+        <conv:StringToVisibilityConverter x:Key="StringToVis" />
+    </Window.Resources>
+    <StackPanel Margin="24,20,24,18">
+        <TextBlock Text="{DynamicResource Str.Heartbeat.Intro}" TextWrapping="Wrap"
+                   Foreground="{DynamicResource TextSecondaryBrush}" />
+
+        <Border Margin="0,12,0,0" Padding="10,8" CornerRadius="4"
+                Background="#F5F5F5" BorderBrush="{DynamicResource ControlStrokeBrush}" BorderThickness="1">
+            <TextBox IsReadOnly="True" BorderThickness="0" Background="Transparent"
+                     FontFamily="{DynamicResource MonoFontFamily}"
+                     TextWrapping="Wrap" Text="{Binding CommandSample, Mode=OneWay}" />
+        </Border>
+
+        <TextBlock Text="{Binding ErrorText}" TextWrapping="Wrap" Margin="0,10,0,0"
+                   Foreground="{DynamicResource DangerBrush}"
+                   Visibility="{Binding ErrorText, Converter={StaticResource StringToVis}}" />
+
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,18,0,0">
+            <Button x:Name="ResetButton" Style="{DynamicResource DangerButton}" Width="110" Margin="0,0,8,0"
+                    Content="{DynamicResource Str.Heartbeat.Reset}" Click="Reset_Click" />
+            <Button Style="{DynamicResource AccentButton}" Width="110"
+                    Content="{DynamicResource Str.Common.Copy}" Click="Copy_Click" />
+        </StackPanel>
+    </StackPanel>
+</Window>

@@ -1,0 +1,290 @@
+<Window x:Class="StartupTool.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:StartupTool.App"
+        xmlns:conv="clr-namespace:StartupTool.App.Converters"
+        xmlns:tb="http://www.hardcodet.net/taskbar"
+        mc:Ignorable="d"
+        Title="{DynamicResource Str.App.Title}"
+        Height="680" Width="1180" MinHeight="480" MinWidth="900"
+        WindowStartupLocation="CenterScreen"
+        Background="{DynamicResource WindowBackgroundBrush}"
+        Loaded="Window_Loaded" Closing="Window_Closing">
+
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        <conv:InverseBoolToVisibilityConverter x:Key="InvBoolToVis" />
+        <conv:InfoKindToBrushConverter x:Key="InfoKindBrush" />
+        <conv:InfoKindToBackgroundConverter x:Key="InfoKindBg" />
+        <conv:StringToVisibilityConverter x:Key="StringToVis" />
+
+        <!-- 托盘矢量图标：蓝底白色播放三角（无需 ico 文件） -->
+        <DrawingImage x:Key="TrayIconSource">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="#0F6CBD">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,16,16" RadiusX="3" RadiusY="3" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing Brush="White">
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup FillRule="EvenOdd">
+                                <PathGeometry Figures="M5,3.2 L12.8,8 L5,12.8 Z" />
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+        <!-- 行右键菜单（C6）：放在 RowStyle 上，DataContext 即该行 ScriptRowViewModel；
+             命令经 x:Reference 桥到 DataGrid 的 DataContext（MainViewModel）。 -->
+        <ContextMenu x:Key="RowContextMenu" Style="{DynamicResource ContextMenuStyle}"
+                     DataContext="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource Self}}">
+            <MenuItem Header="{DynamicResource Str.Menu.Edit}"
+                      Command="{Binding DataContext.EditCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}" />
+            <MenuItem Header="{DynamicResource Str.Menu.Output}"
+                      Command="{Binding DataContext.ShowOutputCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}" />
+            <MenuItem Header="{DynamicResource Str.Menu.Heartbeat}" Click="HeartbeatMenu_Click" Tag="{Binding}" />
+            <MenuItem Header="{DynamicResource Str.Menu.External}"
+                      Command="{Binding DataContext.ShowExternalCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}" />
+            <MenuItem Header="{DynamicResource Str.Menu.OpenLocation}"
+                      Command="{Binding DataContext.OpenFileLocationCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}" />
+            <Separator />
+            <MenuItem Header="{DynamicResource Str.Menu.MoveUp}"
+                      Command="{Binding DataContext.MoveUpCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}" />
+            <MenuItem Header="{DynamicResource Str.Menu.MoveDown}"
+                      Command="{Binding DataContext.MoveDownCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}" />
+            <Separator />
+            <MenuItem Header="{DynamicResource Str.Row.ResumeGuard}"
+                      Command="{Binding DataContext.ResumeGuardCommand, Source={x:Reference ScriptsGrid}}"
+                      CommandParameter="{Binding}"
+                      Visibility="{Binding IsFaulted, Converter={StaticResource BoolToVis}}" />
+            <MenuItem Header="{DynamicResource Str.Menu.Delete}" Click="DeleteMenu_Click" Tag="{Binding}" />
+        </ContextMenu>
+    </Window.Resources>
+
+    <DockPanel LastChildFill="True">
+
+        <!-- 托盘（C10/C11/B18） -->
+        <tb:TaskbarIcon x:Name="Tray"
+                        IconSource="{StaticResource TrayIconSource}"
+                        ToolTipText="{Binding TraySummary}"
+                        TrayLeftMouseUp="Tray_LeftClick"
+                        TrayMouseDoubleClick="Tray_LeftClick">
+            <tb:TaskbarIcon.ContextMenu>
+                <ContextMenu x:Name="TrayMenu" Style="{DynamicResource ContextMenuStyle}"
+                             Opened="TrayMenu_Opened">
+                    <MenuItem Header="{DynamicResource Str.Tray.Show}" Click="TrayShow_Click" />
+                    <MenuItem Header="{DynamicResource Str.Tray.StopAll}" Command="{Binding StopAllCommand}" />
+                    <Separator />
+                    <MenuItem Header="{DynamicResource Str.Tray.Scripts}"
+                              ItemsSource="{Binding Scripts}">
+                        <MenuItem.ItemContainerStyle>
+                            <Style TargetType="MenuItem">
+                                <Setter Property="Tag" Value="{Binding}" />
+                                <Setter Property="HeaderTemplate">
+                                    <Setter.Value>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="8" Height="8" Margin="0,0,8,0"
+                                                         Fill="{Binding StatusBrush}" />
+                                                <TextBlock Text="{Binding Name}" />
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </Setter.Value>
+                                </Setter>
+                                <EventSetter Event="Click" Handler="TrayScript_Click" />
+                            </Style>
+                        </MenuItem.ItemContainerStyle>
+                    </MenuItem>
+                    <Separator />
+                    <MenuItem Header="{DynamicResource Str.Tray.Exit}" Click="TrayExit_Click" />
+                </ContextMenu>
+            </tb:TaskbarIcon.ContextMenu>
+        </tb:TaskbarIcon>
+
+        <!-- 顶部工具栏 -->
+        <Border DockPanel.Dock="Top" Style="{DynamicResource CardBorder}" Margin="12,12,12,8" Padding="12,10">
+            <!-- B08：WrapPanel 取代 StackPanel——英文文案变长时自动换行，尾部按钮（设置）不再被裁出窗口 -->
+            <WrapPanel Orientation="Horizontal">
+                <Button Style="{DynamicResource AccentButton}" Content="{DynamicResource Str.Common.Add}"
+                        Command="{Binding AddCommand}" Margin="0,0,8,0" />
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Toolbar.AddFromTemplate}"
+                        Command="{Binding AddFromTemplateCommand}" Margin="0,0,8,0" />
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Main.StopAll}"
+                        Command="{Binding StopAllCommand}" Margin="0,0,8,0" />
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Common.Refresh}"
+                        Command="{Binding RefreshCommand}" Margin="0,0,8,0" />
+
+                <Border Width="1" Background="{DynamicResource DividerBrush}" Margin="4,2" />
+
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Main.OpenConfigFile}"
+                        Command="{Binding OpenConfigFileCommand}" Margin="8,0,0,0" />
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Main.OpenLogsFolder}"
+                        Command="{Binding OpenLogsFolderCommand}" Margin="8,0,0,0" />
+
+                <!-- 搜索（C5） -->
+                <Grid Width="240" Margin="16,0,0,0" VerticalAlignment="Center">
+                    <TextBox Style="{DynamicResource BaseTextBox}" x:Name="SearchBox"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             Padding="26,6,8,6" />
+                    <TextBlock Text="&#xE721;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="13" Foreground="{DynamicResource TextSecondaryBrush}"
+                               IsHitTestVisible="False" VerticalAlignment="Center" Margin="8,0,0,0" />
+                </Grid>
+
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Toolbar.ImportConfig}"
+                        Command="{Binding ImportConfigCommand}" Margin="8,0,0,0" />
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Toolbar.ExportConfig}"
+                        Command="{Binding ExportConfigCommand}" Margin="8,0,0,0" />
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Toolbar.ExportDiagnostics}"
+                        Command="{Binding ExportDiagnosticsCommand}" Margin="8,0,0,0" />
+
+                <Button Style="{DynamicResource SubtleButton}" Content="{DynamicResource Str.Main.Settings}"
+                        Command="{Binding OpenSettingsCommand}" Margin="8,0,0,0" />
+            </WrapPanel>
+        </Border>
+
+        <!-- 底部信息条 -->
+        <Border DockPanel.Dock="Bottom" Margin="12,0,12,12" Padding="12,8" CornerRadius="6"
+                Visibility="{Binding InfoVisible, Converter={StaticResource BoolToVis}}"
+                Background="{Binding InfoKind, Converter={StaticResource InfoKindBg}}"
+                BorderBrush="{Binding InfoKind, Converter={StaticResource InfoKindBrush}}"
+                BorderThickness="1">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="8" Height="8" Margin="0,0,8,0" VerticalAlignment="Center"
+                         Fill="{Binding InfoKind, Converter={StaticResource InfoKindBrush}}" />
+                <TextBlock Text="{Binding InfoText}" TextWrapping="Wrap" MaxWidth="900"
+                           Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <!-- 主卡片：状态行 + 表格 -->
+        <Border Style="{DynamicResource CardBorder}" Margin="12,0,12,8">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+
+                <!-- 连接状态行 -->
+                <DockPanel Grid.Row="0" Margin="14,12,14,8">
+                    <Ellipse Width="10" Height="10" VerticalAlignment="Center" Margin="0,0,8,0">
+                        <Ellipse.Style>
+                            <Style TargetType="Ellipse">
+                                <Setter Property="Fill" Value="{DynamicResource DangerBrush}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsConnected}" Value="True">
+                                        <Setter Property="Fill" Value="{DynamicResource SuccessBrush}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Ellipse.Style>
+                    </Ellipse>
+                    <TextBlock Text="{Binding StatusText}" FontWeight="SemiBold"
+                               Foreground="{DynamicResource TextPrimaryBrush}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding TraySummary}" HorizontalAlignment="Right"
+                               Foreground="{DynamicResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                </DockPanel>
+
+                <!-- 空状态（ZIndex 高于 DataGrid，且点击穿透不挡表格操作） -->
+                <StackPanel Grid.Row="1" VerticalAlignment="Center" HorizontalAlignment="Center"
+                            Panel.ZIndex="2" IsHitTestVisible="False"
+                            Visibility="{Binding HasScripts, Converter={StaticResource InvBoolToVis}}">
+                    <TextBlock Text="&#xE7C3;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                               FontSize="40" Foreground="{DynamicResource NeutralBrush}"
+                               HorizontalAlignment="Center" Margin="0,0,0,8" />
+                    <TextBlock Text="{DynamicResource Str.Main.Empty}"
+                               Foreground="{DynamicResource TextSecondaryBrush}" HorizontalAlignment="Center" />
+                </StackPanel>
+
+                <DataGrid Grid.Row="1" Margin="6,0,6,6"
+                          x:Name="ScriptsGrid"
+                          ItemsSource="{Binding ScriptsView}"
+                          SelectedItem="{Binding SelectedScript}"
+                          AutoGenerateColumns="False" CanUserAddRows="False" CanUserDeleteRows="False"
+                          IsReadOnly="True" SelectionMode="Single" HeadersVisibility="Column"
+                          GridLinesVisibility="Horizontal" BorderThickness="0"
+                          RowHeight="38"
+                          MouseDoubleClick="ScriptsGrid_MouseDoubleClick"
+                          MouseLeftButtonUp="ScriptsGrid_MouseLeftButtonUp"
+                          PreviewMouseLeftButtonDown="ScriptsGrid_PreviewMouseLeftButtonDown"
+                          MouseMove="ScriptsGrid_MouseMove"
+                          DragOver="ScriptsGrid_DragOver" Drop="ScriptsGrid_Drop"
+                          AllowDrop="True">
+                    <DataGrid.RowStyle>
+                        <Style TargetType="DataGridRow" BasedOn="{StaticResource {x:Type DataGridRow}}">
+                            <Setter Property="ContextMenu" Value="{StaticResource RowContextMenu}" />
+                        </Style>
+                    </DataGrid.RowStyle>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn x:Name="ColName" Header="{DynamicResource Str.Col.Name}" Binding="{Binding Name}" Width="120" />
+                        <DataGridTemplateColumn x:Name="ColState" Header="{DynamicResource Str.Col.State}" Width="100">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Ellipse Width="8" Height="8" Margin="0,0,6,0" Fill="{Binding StatusBrush}" />
+                                        <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusBrush}"
+                                                   VerticalAlignment="Center" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn x:Name="ColPid" Header="{DynamicResource Str.Col.Pid}" Binding="{Binding Pid, TargetNullValue=—}" Width="55" />
+                        <DataGridTextColumn x:Name="ColSession" Header="{DynamicResource Str.Col.Session}" Binding="{Binding SessionText}" Width="55" />
+                        <DataGridTextColumn x:Name="ColUptime" Header="{DynamicResource Str.Col.Uptime}" Binding="{Binding UptimeText}" Width="70" />
+                        <DataGridTextColumn x:Name="ColRestarts" Header="{DynamicResource Str.Col.Restarts}" Binding="{Binding RestartCount}" Width="50" />
+                        <DataGridTextColumn x:Name="ColCpu" Header="{DynamicResource Str.Col.Cpu}" Binding="{Binding CpuText}" Width="55" />
+                        <DataGridTextColumn x:Name="ColMemory" Header="{DynamicResource Str.Col.Memory}" Binding="{Binding MemoryText}" Width="65" />
+                        <DataGridTextColumn x:Name="ColGpu" Header="{DynamicResource Str.Col.Gpu}" Binding="{Binding GpuText}" Width="55" />
+                        <DataGridTextColumn x:Name="ColLastBeat" Header="{DynamicResource Str.Col.LastBeat}" Binding="{Binding LastBeatText}" Width="75" />
+                        <DataGridTextColumn x:Name="ColExternal" Header="{DynamicResource Str.Col.External}" Binding="{Binding ExternalText}" Width="70" />
+                        <DataGridTextColumn x:Name="ColExitCode" Header="{DynamicResource Str.Col.ExitCode}" Binding="{Binding ExitCodeText}" Width="55" />
+                        <DataGridTextColumn x:Name="ColLastFault" Header="{DynamicResource Str.Col.LastFault}" Binding="{Binding LastFault, TargetNullValue=—}" Width="*" MinWidth="85">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="ToolTip" Value="{Binding LastFault}" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn x:Name="ColOps" Header="{DynamicResource Str.Col.Ops}" Width="Auto" MinWidth="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button Style="{DynamicResource SubtleButton}" Margin="1,0" Padding="6,3"
+                                                Content="{DynamicResource Str.Common.Start}"
+                                                Command="{Binding DataContext.StartCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" IsEnabled="{Binding CanStart}" />
+                                        <Button Style="{DynamicResource SubtleButton}" Margin="1,0" Padding="6,3"
+                                                Content="{DynamicResource Str.Common.Stop}"
+                                                Command="{Binding DataContext.StopCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" IsEnabled="{Binding CanStop}" />
+                                        <Button Style="{DynamicResource SubtleButton}" Margin="1,0" Padding="6,3"
+                                                Content="{DynamicResource Str.Common.Restart}"
+                                                Command="{Binding DataContext.RestartCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" IsEnabled="{Binding IsRunning}" />
+                                        <Button Style="{DynamicResource SubtleButton}" Margin="1,0" Padding="5,3"
+                                                Content="{DynamicResource Str.Row.Output}"
+                                                Command="{Binding DataContext.ShowOutputCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Border>
+    </DockPanel>
+</Window>
